@@ -776,6 +776,9 @@
         "Passed": "badge-passage-passed",
       }[passage.label] || "badge-passage-possible";
       let html = `<span class="badge badge-passage ${cls}" title="${(passage.factors || []).join('; ')}">${passage.score}% ${passage.label}</span>`;
+      if (passage.model === "trained") {
+        html += `<span class="badge-confidence" style="color:#059669" title="Score from logistic regression trained on historical data">ML</span>`;
+      }
       if (passage.confidence && passage.confidence !== "high") {
         html += `<span class="badge-confidence">${passage.confidence} conf.</span>`;
       }
@@ -792,7 +795,6 @@
         bipartisan: "Bipartisan",
         momentum: "Momentum",
         timing: "Session Timing",
-        context: "Policy Context",
         structure: "Bill Structure",
       };
       const dimColors = {
@@ -801,10 +803,15 @@
         bipartisan: "#059669",
         momentum: "#d97706",
         timing: "#dc2626",
-        context: "#0891b2",
         structure: "#6b7280",
       };
-      let html = '<div class="passage-breakdown">';
+
+      let html = '';
+      if (passage.model === "trained") {
+        html += '<div style="margin-bottom:8px;font-size:0.75rem;color:#059669;font-weight:600">Trained model (logistic regression on historical data)</div>';
+      }
+
+      html += '<div class="passage-breakdown">';
       for (const [key, label] of Object.entries(dimNames)) {
         const d = dims[key];
         if (!d) continue;
@@ -820,6 +827,17 @@
           </div>`;
       }
       html += '</div>';
+
+      // Key factors (shown for trained model)
+      if (passage.model === "trained" && passage.factors && passage.factors.length > 0) {
+        html += '<div style="margin-top:8px"><strong style="font-size:0.8rem;color:#374151">Key Factors:</strong>';
+        passage.factors.forEach(f => {
+          const isPositive = f.includes("helps");
+          const color = isPositive ? "#059669" : "#dc2626";
+          html += `<div style="font-size:0.75rem;color:${color};padding:1px 0">${esc(f)}</div>`;
+        });
+        html += '</div>';
+      }
 
       // Risks
       if (passage.risks && passage.risks.length > 0) {
