@@ -66,9 +66,9 @@ The `_extract_sponsors()` function in `checker.py` handles all these variants. I
 - The `/api/bills/<id>/refresh` endpoint bypasses hash checking for force updates
 - `check_all_bills()` is called by GitHub Actions and the "Check Now" button
 
-### File Locking & Atomicity
-- `save_tracked_bills()` uses `fcntl.flock()` for exclusive file locking
-- Writes to a `.tmp` file first, then atomically renames for crash safety
+### Atomic Writes
+- `save_tracked_bills()` writes to a `.tmp` file first, then atomically renames for crash safety
+- No OS-specific locking (must work on both Windows and Linux/macOS)
 
 ### API Retry Logic
 - `LegiScanAPI._call()` retries up to 3 times with exponential backoff (1s, 2s, 4s) on network errors

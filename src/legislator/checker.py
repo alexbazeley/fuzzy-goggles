@@ -1,6 +1,5 @@
 """Change detection logic and data models for tracked bills."""
 
-import fcntl
 import json
 from dataclasses import dataclass, field, asdict
 from pathlib import Path
@@ -151,16 +150,11 @@ def load_tracked_bills(path: Path) -> list[TrackedBill]:
 
 
 def save_tracked_bills(bills: list[TrackedBill], path: Path) -> None:
-    """Save tracked bills to JSON file with file locking."""
+    """Save tracked bills to JSON file atomically (write to temp, then rename)."""
     path.parent.mkdir(parents=True, exist_ok=True)
-    # Write to temp file then rename for atomicity
     tmp_path = path.with_suffix(".tmp")
     with open(tmp_path, "w") as f:
-        fcntl.flock(f, fcntl.LOCK_EX)
-        try:
-            json.dump([asdict(b) for b in bills], f, indent=2)
-        finally:
-            fcntl.flock(f, fcntl.LOCK_UN)
+        json.dump([asdict(b) for b in bills], f, indent=2)
     tmp_path.rename(path)
 
 
