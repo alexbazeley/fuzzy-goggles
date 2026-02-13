@@ -152,14 +152,21 @@ When a trained model is available, scores come from a **logistic regression** tr
 
 **Training the model:**
 
+1. Create a free account at [open.pluralpolicy.com](https://open.pluralpolicy.com/)
+2. Download session JSON files from the [bulk data page](https://open.pluralpolicy.com/data/session-json/) — grab several completed sessions, e.g.:
+   - Texas 88th Legislature (2023)
+   - California 2023-2024 Regular Session
+   - New York 2023 Regular Session
+   - Virginia 2024 Regular Session
+   - Colorado 2024 Regular Session
+3. Place the `.json` or `.zip` files in `src/legislator/model/data/`
+4. Run the training script:
+
 ```bash
-export OPENSTATES_API_KEY=your_key
 PYTHONPATH=src python -m legislator.model.train
 ```
 
-This fetches historical bills from ~10 state-sessions (TX, CA, NY, NC, VA, CO), extracts features, trains logistic regression with class weighting for the imbalanced passed/failed ratio, and saves weights to `src/legislator/model/weights.json`.
-
-Training data is cached to `src/legislator/model/data/training_bills.json` so re-runs don't re-fetch from the API.
+This extracts features from the downloaded bills, trains logistic regression with class weighting for the imbalanced passed/failed ratio, and saves weights to `src/legislator/model/weights.json`. The more state-sessions you include, the better the model.
 
 ### Heuristic fallback
 

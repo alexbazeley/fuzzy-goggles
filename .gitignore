@@ -1,2 +1,5 @@
 __pycache__/
 *.pyc
+
+# Bulk training data (large JSON downloads from Open States)
+src/legislator/model/data/
