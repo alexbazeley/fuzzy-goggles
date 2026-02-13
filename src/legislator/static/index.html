@@ -4,212 +4,593 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Legislation Tracker</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
   <style>
-    * { box-sizing: border-box; margin: 0; padding: 0; }
-    body {
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-      max-width: 1100px;
-      margin: 0 auto;
-      padding: 24px;
-      background: #f8f9fa;
-      color: #1a1a1a;
+    :root {
+      --bg: #f0f0ef;
+      --surface: #ffffff;
+      --surface-alt: #f7f7f6;
+      --border: #e0dfdb;
+      --border-light: #eae9e5;
+      --text-primary: #222222;
+      --text-secondary: #555555;
+      --text-muted: #8a8a8a;
+      --text-faint: #aaaaaa;
+      --accent: #ed713a;
+      --accent-hover: #d4612e;
+      --teal: #00a99d;
+      --teal-dark: #008c82;
+      --navy: #2c3e50;
+      --red: #e74c3c;
+      --red-light: #fdf0ee;
+      --green: #27ae60;
+      --green-light: #eef9f2;
+      --yellow: #f39c12;
+      --yellow-light: #fef8ec;
+      --purple: #8e44ad;
+      --blue: #3498db;
+      --blue-light: #edf5fc;
+      --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      --font-mono: 'JetBrains Mono', 'SF Mono', 'Fira Code', monospace;
+      --radius: 4px;
+      --radius-lg: 8px;
+      --shadow-sm: 0 1px 2px rgba(0,0,0,0.06);
+      --shadow: 0 1px 4px rgba(0,0,0,0.08);
     }
-    h1 { margin-bottom: 8px; font-size: 1.5rem; }
-    h2 { margin-bottom: 12px; font-size: 1.1rem; color: #444; }
-    h3 { font-size: 0.95rem; color: #555; margin-bottom: 8px; }
 
-    /* Tabs */
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: var(--font-sans);
+      background: var(--bg);
+      color: var(--text-primary);
+      line-height: 1.5;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    /* ── Header ── */
+    .site-header {
+      background: var(--navy);
+      color: white;
+      padding: 0;
+      border-bottom: 4px solid var(--accent);
+    }
+    .header-inner {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 16px 24px 0;
+    }
+    .site-title {
+      font-size: 1.1rem;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: 2px;
+      color: white;
+    }
+    .site-subtitle {
+      font-size: 0.78rem;
+      color: rgba(255,255,255,0.55);
+      margin-top: 2px;
+      font-weight: 400;
+    }
+
+    /* ── Tabs ── */
     .tabs {
       display: flex;
-      gap: 4px;
-      margin-bottom: 20px;
-      border-bottom: 2px solid #e0e0e0;
+      gap: 0;
+      margin-top: 12px;
     }
     .tab {
-      padding: 10px 20px;
+      padding: 10px 24px;
       cursor: pointer;
       border: none;
       background: none;
-      font-size: 0.95rem;
-      font-weight: 500;
-      color: #666;
-      border-bottom: 2px solid transparent;
-      margin-bottom: -2px;
-      transition: all 0.2s;
+      font-family: var(--font-sans);
+      font-size: 0.82rem;
+      font-weight: 600;
+      color: rgba(255,255,255,0.6);
+      text-transform: uppercase;
+      letter-spacing: 0.8px;
+      border-bottom: 3px solid transparent;
+      transition: all 0.15s;
     }
-    .tab:hover { color: #333; }
-    .tab.active { color: #2563eb; border-bottom-color: #2563eb; }
+    .tab:hover { color: rgba(255,255,255,0.9); }
+    .tab.active {
+      color: white;
+      border-bottom-color: var(--accent);
+    }
+
+    /* ── Main content ── */
+    .main {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 24px;
+    }
     .tab-content { display: none; }
     .tab-content.active { display: block; }
 
-    /* Dashboard */
+    /* ── Dashboard Stat Cards ── */
     .dashboard-grid {
       display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-      gap: 12px;
-      margin-bottom: 20px;
+      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+      gap: 16px;
+      margin-bottom: 32px;
     }
     .stat-card {
-      background: white;
-      border: 1px solid #e0e0e0;
-      border-radius: 8px;
-      padding: 16px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      padding: 20px;
       text-align: center;
+      box-shadow: var(--shadow-sm);
+      position: relative;
+      overflow: hidden;
     }
+    .stat-card::before {
+      content: '';
+      position: absolute;
+      top: 0; left: 0; right: 0;
+      height: 3px;
+    }
+    .stat-card.accent::before { background: var(--accent); }
+    .stat-card.red::before { background: var(--red); }
+    .stat-card.yellow::before { background: var(--yellow); }
+    .stat-card.green::before { background: var(--green); }
     .stat-number {
-      font-size: 2rem;
+      font-family: var(--font-mono);
+      font-size: 2.4rem;
       font-weight: 700;
-      color: #2563eb;
+      line-height: 1;
     }
+    .stat-number.accent { color: var(--accent); }
+    .stat-number.red { color: var(--red); }
+    .stat-number.yellow { color: var(--yellow); }
+    .stat-number.green { color: var(--green); }
     .stat-label {
-      font-size: 0.82rem;
-      color: #666;
-      margin-top: 4px;
+      font-size: 0.72rem;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      font-weight: 600;
+      margin-top: 8px;
     }
 
-    /* Warning banners */
-    .warning-banner {
-      background: #fef3c7;
-      border: 1px solid #f59e0b;
-      border-radius: 8px;
-      padding: 12px 16px;
-      margin-bottom: 8px;
-      font-size: 0.85rem;
+    /* ── Section headers ── */
+    .section { margin-bottom: 32px; }
+    .section-title {
+      font-size: 0.82rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 1.5px;
+      color: var(--text-secondary);
+      margin-bottom: 14px;
+      padding-bottom: 8px;
+      border-bottom: 2px solid var(--text-primary);
+      display: inline-block;
     }
-    .warning-banner .warning-title {
+
+    /* ── Chart bars ── */
+    .chart-row {
+      display: flex;
+      align-items: center;
+      margin-bottom: 10px;
+      gap: 12px;
+    }
+    .chart-label {
+      width: 100px;
+      font-size: 0.82rem;
       font-weight: 600;
-      color: #92400e;
+      color: var(--text-secondary);
+      text-align: right;
+      flex-shrink: 0;
     }
-    .warning-banner .warning-text {
-      color: #78350f;
+    .chart-track {
+      flex: 1;
+      height: 24px;
+      background: var(--border-light);
+      border-radius: 3px;
+      overflow: hidden;
+      position: relative;
+    }
+    .chart-fill {
+      height: 100%;
+      border-radius: 3px;
+      display: flex;
+      align-items: center;
+      justify-content: flex-end;
+      padding-right: 8px;
+      font-family: var(--font-mono);
+      font-size: 0.7rem;
+      font-weight: 700;
+      color: white;
+      min-width: 28px;
+      transition: width 0.4s ease;
+    }
+    .chart-value {
+      width: 32px;
+      font-family: var(--font-mono);
+      font-size: 0.82rem;
+      font-weight: 700;
+      color: var(--text-primary);
+      text-align: right;
+      flex-shrink: 0;
+    }
+
+    /* ── Warning banners ── */
+    .warning-banner {
+      background: var(--yellow-light);
+      border-left: 4px solid var(--yellow);
+      border-radius: 0 var(--radius) var(--radius) 0;
+      padding: 12px 16px;
+      margin-bottom: 10px;
+    }
+    .warning-title {
+      font-weight: 700;
+      font-size: 0.88rem;
+      color: var(--text-primary);
+    }
+    .warning-text {
+      font-size: 0.82rem;
+      color: var(--text-secondary);
       margin-top: 2px;
     }
 
-    /* Hearing list */
+    /* ── Hearing items ── */
     .hearing-item {
-      background: white;
-      border: 1px solid #e0e0e0;
-      border-radius: 8px;
-      padding: 10px 14px;
-      margin-bottom: 6px;
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      padding: 12px 16px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      margin-bottom: 8px;
+      box-shadow: var(--shadow-sm);
+    }
+    .hearing-date {
+      font-family: var(--font-mono);
+      font-weight: 700;
+      font-size: 0.85rem;
+      color: var(--purple);
+      min-width: 100px;
+      flex-shrink: 0;
+    }
+    .hearing-bill {
+      font-weight: 700;
+      font-size: 0.88rem;
+      color: var(--text-primary);
+      min-width: 80px;
+    }
+    .hearing-desc {
+      font-size: 0.82rem;
+      color: var(--text-secondary);
+      flex: 1;
+    }
+    .hearing-loc {
+      font-size: 0.78rem;
+      color: var(--text-muted);
+    }
+
+    /* ── Toolbar / Filter bar ── */
+    .toolbar {
       display: flex;
       justify-content: space-between;
       align-items: center;
-    }
-    .hearing-date {
-      font-weight: 600;
-      color: #7c3aed;
-      min-width: 100px;
-    }
-
-    /* Search */
-    .search-bar {
-      display: flex;
-      gap: 8px;
       margin-bottom: 16px;
-      flex-wrap: wrap;
     }
-    .search-bar select, .search-bar input, .search-bar button {
-      padding: 8px 12px;
-      border: 1px solid #ccc;
-      border-radius: 6px;
-      font-size: 0.9rem;
+    .toolbar-title {
+      font-size: 1.1rem;
+      font-weight: 800;
+      color: var(--text-primary);
     }
-    .search-bar input { flex: 1; min-width: 200px; }
-    .search-bar button {
-      background: #2563eb;
-      color: white;
-      border: none;
-      cursor: pointer;
-      font-weight: 500;
-    }
-    .search-bar button:hover { background: #1d4ed8; }
-
-    /* Filter bar */
     .filter-bar {
       display: flex;
       gap: 8px;
-      margin-bottom: 12px;
+      margin-bottom: 20px;
       flex-wrap: wrap;
       align-items: center;
+      padding: 12px 16px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      box-shadow: var(--shadow-sm);
     }
-    .filter-bar label {
-      font-size: 0.82rem;
-      color: #666;
-      font-weight: 500;
+    .filter-label {
+      font-size: 0.72rem;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      font-weight: 700;
     }
     .filter-bar select {
       padding: 6px 10px;
-      border: 1px solid #ccc;
-      border-radius: 6px;
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
       font-size: 0.82rem;
-      background: white;
+      font-family: var(--font-sans);
+      background: var(--surface-alt);
+      color: var(--text-primary);
+      cursor: pointer;
+    }
+    .filter-bar select:focus {
+      outline: 2px solid var(--accent);
+      outline-offset: -1px;
+    }
+    .filter-divider {
+      width: 1px;
+      height: 24px;
+      background: var(--border);
+      margin: 0 4px;
     }
 
-    /* Cards */
-    .section { margin-bottom: 32px; }
-    .card {
-      background: white;
-      border: 1px solid #e0e0e0;
-      border-radius: 8px;
-      padding: 14px 16px;
-      margin-bottom: 8px;
-      transition: border-color 0.2s;
+    /* ── Search bar ── */
+    .search-bar {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 20px;
+      flex-wrap: wrap;
     }
-    .card:hover { border-color: #b0b0b0; }
+    .search-bar select {
+      padding: 10px 14px;
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      font-size: 0.88rem;
+      font-family: var(--font-sans);
+      background: var(--surface);
+      color: var(--text-primary);
+    }
+    .search-bar input {
+      flex: 1;
+      min-width: 240px;
+      padding: 10px 14px;
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      font-size: 0.88rem;
+      font-family: var(--font-sans);
+      background: var(--surface);
+      color: var(--text-primary);
+    }
+    .search-bar input:focus {
+      outline: 2px solid var(--accent);
+      outline-offset: -1px;
+      border-color: var(--accent);
+    }
+    .search-bar input::placeholder {
+      color: var(--text-faint);
+    }
+    .search-summary {
+      font-size: 0.82rem;
+      color: var(--text-muted);
+      margin-bottom: 12px;
+    }
+
+    /* ── Buttons ── */
+    .btn {
+      font-family: var(--font-sans);
+      font-weight: 600;
+      cursor: pointer;
+      border: none;
+      border-radius: var(--radius);
+      transition: all 0.15s;
+    }
+    .btn-primary {
+      background: var(--accent);
+      color: white;
+      padding: 10px 20px;
+      font-size: 0.88rem;
+    }
+    .btn-primary:hover { background: var(--accent-hover); }
+    .btn-check {
+      background: var(--navy);
+      color: white;
+      padding: 8px 20px;
+      font-size: 0.82rem;
+      letter-spacing: 0.5px;
+      text-transform: uppercase;
+    }
+    .btn-check:hover { background: #3d5166; }
+    .btn-sm {
+      padding: 5px 12px;
+      font-size: 0.78rem;
+      background: var(--surface-alt);
+      border: 1px solid var(--border);
+      color: var(--text-secondary);
+      border-radius: var(--radius);
+    }
+    .btn-sm:hover { background: var(--border-light); border-color: var(--text-muted); }
+    .btn-track {
+      background: var(--teal);
+      color: white;
+      border: none;
+      padding: 5px 14px;
+      font-size: 0.82rem;
+      font-weight: 600;
+    }
+    .btn-track:hover { background: var(--teal-dark); }
+    .btn-remove {
+      color: var(--red);
+      border-color: var(--red);
+      background: white;
+    }
+    .btn-remove:hover { background: var(--red-light); }
+    .btn-link {
+      background: none;
+      border: none;
+      color: var(--accent);
+      font-size: 0.82rem;
+      font-weight: 600;
+      cursor: pointer;
+      padding: 4px 0;
+    }
+    .btn-link:hover { text-decoration: underline; }
+
+    /* ── Bill Cards ── */
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      padding: 18px 20px;
+      margin-bottom: 12px;
+      box-shadow: var(--shadow-sm);
+      transition: box-shadow 0.15s, border-color 0.15s;
+    }
+    .card:hover {
+      box-shadow: var(--shadow);
+      border-color: #ccc;
+    }
     .card-header {
       display: flex;
       justify-content: space-between;
       align-items: flex-start;
-      gap: 12px;
+      gap: 16px;
     }
-    .card-title {
-      font-weight: 600;
+    .card-bill-id {
+      font-family: var(--font-mono);
       font-size: 0.95rem;
+      font-weight: 700;
+      color: var(--text-primary);
+    }
+    .card-title-text {
+      font-size: 0.92rem;
+      font-weight: 500;
+      color: var(--text-secondary);
+      margin-top: 2px;
+      line-height: 1.4;
+    }
+    .card-badges {
+      display: flex;
+      gap: 6px;
+      align-items: center;
+      flex-wrap: wrap;
+      margin-top: 8px;
     }
     .card-meta {
       font-size: 0.82rem;
-      color: #666;
-      margin-top: 4px;
+      color: var(--text-muted);
+      margin-top: 8px;
+      line-height: 1.6;
     }
-    .card-meta a { color: #2563eb; text-decoration: none; }
+    .card-meta a {
+      color: var(--accent);
+      text-decoration: none;
+      font-weight: 600;
+    }
     .card-meta a:hover { text-decoration: underline; }
+    .card-actions {
+      display: flex;
+      gap: 6px;
+      align-items: center;
+      flex-shrink: 0;
+    }
 
-    /* Bill detail sections (collapsible) */
-    .card-details {
-      display: none;
-      margin-top: 10px;
-      padding-top: 10px;
-      border-top: 1px solid #eee;
+    /* ── Passage score gauge ── */
+    .score-gauge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
     }
-    .card-details.open { display: block; }
-    .detail-section {
-      margin-bottom: 10px;
+    .score-number {
+      font-family: var(--font-mono);
+      font-size: 1.5rem;
+      font-weight: 700;
+      line-height: 1;
     }
-    .detail-section h4 {
-      font-size: 0.82rem;
-      color: #444;
-      margin-bottom: 4px;
+    .score-meta {
+      display: flex;
+      flex-direction: column;
+    }
+    .score-label {
+      font-size: 0.72rem;
+      font-weight: 700;
       text-transform: uppercase;
       letter-spacing: 0.5px;
+      line-height: 1.2;
     }
-    .detail-section ul {
-      list-style: none;
-      padding: 0;
+    .score-sublabel {
+      font-size: 0.65rem;
+      color: var(--text-muted);
+      font-weight: 500;
     }
-    .detail-section li {
-      font-size: 0.85rem;
-      padding: 2px 0;
-      color: #555;
+    .score-very-likely .score-number, .score-very-likely .score-label { color: var(--green); }
+    .score-likely .score-number, .score-likely .score-label { color: var(--teal); }
+    .score-possible .score-number, .score-possible .score-label { color: var(--yellow); }
+    .score-unlikely .score-number, .score-unlikely .score-label { color: var(--accent); }
+    .score-very-unlikely .score-number, .score-very-unlikely .score-label { color: var(--red); }
+    .score-dead .score-number, .score-dead .score-label { color: var(--red); }
+    .score-passed .score-number, .score-passed .score-label { color: var(--green); }
+
+    /* ── Badges ── */
+    .badge {
+      display: inline-block;
+      padding: 2px 8px;
+      border-radius: 3px;
+      font-size: 0.7rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      white-space: nowrap;
+    }
+    .badge-state {
+      background: var(--navy);
+      color: white;
+    }
+    .badge-status {
+      background: var(--blue-light);
+      color: var(--blue);
+    }
+    .badge-priority-high {
+      background: var(--red-light);
+      color: var(--red);
+      border: 1px solid #f5c6cb;
+    }
+    .badge-priority-medium {
+      background: var(--yellow-light);
+      color: #b47d09;
+      border: 1px solid #f5dfa3;
+    }
+    .badge-priority-low {
+      background: var(--green-light);
+      color: var(--green);
+      border: 1px solid #b7e4c7;
+    }
+    .badge-ml {
+      background: var(--teal);
+      color: white;
+      font-size: 0.62rem;
+      padding: 1px 5px;
+      border-radius: 2px;
+    }
+    .badge-confidence {
+      font-size: 0.65rem;
+      font-weight: 600;
+      color: var(--text-muted);
+      background: var(--surface-alt);
+      border: 1px solid var(--border);
+      padding: 1px 6px;
+      border-radius: 3px;
+    }
+    .badge-subject {
+      background: var(--surface-alt);
+      color: var(--text-secondary);
+      border: 1px solid var(--border);
+    }
+    .badge-solar {
+      background: var(--yellow-light);
+      color: #92610a;
+      border: 1px solid #f0d78c;
+    }
+    .badge-milestone {
+      background: var(--green-light);
+      color: #1a7a40;
+      border: 1px solid #a3dbb7;
     }
 
-    /* Timeline (progress bar) */
+    /* ── Timeline ── */
     .timeline {
       display: flex;
       align-items: center;
-      gap: 0;
-      margin-top: 8px;
-      margin-bottom: 4px;
+      margin: 12px 0 4px;
     }
     .timeline-step {
       flex: 1;
@@ -217,349 +598,362 @@
       position: relative;
     }
     .timeline-dot {
-      width: 14px;
-      height: 14px;
+      width: 16px;
+      height: 16px;
       border-radius: 50%;
-      background: #ddd;
+      background: var(--border);
       margin: 0 auto 4px;
-      border: 2px solid #ccc;
+      border: 2px solid var(--border);
       position: relative;
       z-index: 1;
+      transition: all 0.2s;
     }
-    .timeline-dot.reached { background: #2563eb; border-color: #1d4ed8; }
-    .timeline-dot.current { background: #16a34a; border-color: #15803d; box-shadow: 0 0 0 3px rgba(22,163,74,0.2); }
-    .timeline-dot.failed { background: #dc2626; border-color: #b91c1c; }
-    .timeline-dot.vetoed { background: #f59e0b; border-color: #d97706; }
+    .timeline-dot.reached { background: var(--navy); border-color: var(--navy); }
+    .timeline-dot.current {
+      background: var(--accent);
+      border-color: var(--accent);
+      box-shadow: 0 0 0 4px rgba(237,113,58,0.2);
+    }
+    .timeline-dot.failed { background: var(--red); border-color: var(--red); }
+    .timeline-dot.vetoed { background: var(--yellow); border-color: var(--yellow); }
     .timeline-label {
       font-size: 0.65rem;
-      color: #888;
+      color: var(--text-faint);
+      font-weight: 500;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
     }
-    .timeline-label.active { color: #1a1a1a; font-weight: 600; }
+    .timeline-label.active { color: var(--text-primary); font-weight: 700; }
     .timeline-connector {
       height: 2px;
       flex: 1;
-      background: #ddd;
-      margin-top: -18px;
+      background: var(--border);
+      margin-top: -20px;
     }
-    .timeline-connector.reached { background: #2563eb; }
+    .timeline-connector.reached { background: var(--navy); }
 
-    /* Badges */
-    .badge {
-      display: inline-block;
-      padding: 2px 8px;
-      border-radius: 12px;
-      font-size: 0.75rem;
-      font-weight: 600;
-      white-space: nowrap;
+    /* ── Session bar ── */
+    .session-bar { margin-top: 8px; }
+    .session-track {
+      height: 4px;
+      background: var(--border-light);
+      border-radius: 2px;
+      overflow: hidden;
     }
-    .badge-status { background: #dbeafe; color: #1e40af; }
-    .badge-state { background: #f0fdf4; color: #166534; }
-    .badge-priority-high { background: #fef2f2; color: #dc2626; border: 1px solid #fca5a5; }
-    .badge-priority-medium { background: #fffbeb; color: #d97706; border: 1px solid #fcd34d; }
-    .badge-priority-low { background: #f0fdf4; color: #16a34a; border: 1px solid #86efac; }
-    .badge-passage {
-      padding: 2px 8px;
-      border-radius: 12px;
+    .session-fill {
+      height: 100%;
+      border-radius: 2px;
+      transition: width 0.4s;
+    }
+    .session-fill.ok { background: var(--teal); }
+    .session-fill.warning { background: var(--yellow); }
+    .session-fill.danger { background: var(--red); }
+    .session-text {
       font-size: 0.72rem;
-      font-weight: 600;
-    }
-    .badge-passage-very-likely { background: #dcfce7; color: #166534; }
-    .badge-passage-likely { background: #dbeafe; color: #1e40af; }
-    .badge-passage-possible { background: #fef3c7; color: #92400e; }
-    .badge-passage-unlikely { background: #fee2e2; color: #991b1b; }
-    .badge-passage-very-unlikely { background: #f3f4f6; color: #6b7280; }
-    .badge-passage-dead { background: #fef2f2; color: #dc2626; }
-    .badge-passage-passed { background: #dcfce7; color: #166534; }
-    .badge-confidence {
-      padding: 1px 6px;
-      border-radius: 8px;
-      font-size: 0.65rem;
-      font-weight: 500;
-      margin-left: 4px;
-      border: 1px solid #d1d5db;
-      color: #6b7280;
+      color: var(--text-muted);
+      margin-top: 3px;
     }
 
-    /* Passage likelihood breakdown */
-    .passage-breakdown { margin-top: 8px; }
+    /* ── Card Details (collapsible) ── */
+    .card-details {
+      display: none;
+      margin-top: 16px;
+      padding-top: 16px;
+      border-top: 1px solid var(--border-light);
+    }
+    .card-details.open { display: block; }
+    .detail-section { margin-bottom: 16px; }
+    .detail-section h4 {
+      font-size: 0.72rem;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 1.2px;
+      font-weight: 700;
+      margin-bottom: 8px;
+    }
+    .detail-section p {
+      font-size: 0.88rem;
+      color: var(--text-secondary);
+      line-height: 1.6;
+    }
+    .detail-section ul {
+      list-style: none;
+      padding: 0;
+    }
+    .detail-section li {
+      font-size: 0.85rem;
+      padding: 3px 0;
+      color: var(--text-secondary);
+    }
+
+    /* ── Passage breakdown ── */
+    .passage-breakdown { margin-top: 10px; }
     .passage-dim {
       display: flex;
       align-items: center;
-      margin-bottom: 4px;
-      font-size: 0.8rem;
+      margin-bottom: 6px;
     }
     .passage-dim-label {
       width: 140px;
       flex-shrink: 0;
-      color: #374151;
-      font-weight: 500;
+      font-size: 0.8rem;
+      font-weight: 600;
+      color: var(--text-secondary);
     }
     .passage-dim-bar {
       flex: 1;
-      height: 14px;
-      background: #f3f4f6;
-      border-radius: 7px;
+      height: 16px;
+      background: var(--border-light);
+      border-radius: 3px;
       overflow: hidden;
-      margin: 0 8px;
+      margin: 0 10px;
     }
     .passage-dim-fill {
       height: 100%;
-      border-radius: 7px;
-      transition: width 0.3s ease;
+      border-radius: 3px;
+      transition: width 0.4s ease;
     }
     .passage-dim-score {
-      width: 50px;
+      width: 48px;
       text-align: right;
+      font-family: var(--font-mono);
       font-size: 0.75rem;
-      color: #6b7280;
+      font-weight: 700;
+      color: var(--text-secondary);
     }
+
+    /* ── Risk items ── */
     .risk-item {
-      display: flex;
-      align-items: center;
-      gap: 6px;
-      padding: 4px 8px;
-      margin: 3px 0;
-      background: #fef2f2;
-      border-left: 3px solid #dc2626;
-      border-radius: 4px;
-      font-size: 0.8rem;
-      color: #991b1b;
-    }
-    .confidence-note {
-      font-size: 0.75rem;
-      color: #9ca3af;
-      font-style: italic;
-      margin-top: 4px;
+      padding: 6px 10px;
+      margin: 4px 0;
+      background: var(--red-light);
+      border-left: 3px solid var(--red);
+      border-radius: 0 var(--radius) var(--radius) 0;
+      font-size: 0.82rem;
+      color: #8b2020;
     }
 
-    /* Buttons */
-    .btn-sm {
-      padding: 4px 12px;
-      border: 1px solid #ccc;
-      border-radius: 6px;
-      font-size: 0.8rem;
-      cursor: pointer;
-      background: white;
-    }
-    .btn-track { background: #16a34a; color: white; border: none; }
-    .btn-track:hover { background: #15803d; }
-    .btn-remove { color: #dc2626; border-color: #dc2626; }
-    .btn-remove:hover { background: #fef2f2; }
-    .btn-check {
-      background: #7c3aed;
-      color: white;
-      border: none;
-      padding: 8px 16px;
-      border-radius: 6px;
-      font-size: 0.9rem;
-      cursor: pointer;
+    /* ── Factor items ── */
+    .factor-positive {
+      font-size: 0.78rem;
+      color: var(--green);
       font-weight: 500;
+      padding: 1px 0;
     }
-    .btn-check:hover { background: #6d28d9; }
-    .btn-expand {
-      background: none;
-      border: none;
-      color: #2563eb;
-      cursor: pointer;
-      font-size: 0.8rem;
-      padding: 2px 6px;
+    .factor-negative {
+      font-size: 0.78rem;
+      color: var(--red);
+      font-weight: 500;
+      padding: 1px 0;
     }
-    .btn-expand:hover { text-decoration: underline; }
 
-    /* Priority selector */
+    /* ── History timeline ── */
+    .history-timeline {
+      border-left: 2px solid var(--border);
+      padding-left: 20px;
+      margin-left: 4px;
+    }
+    .history-item {
+      position: relative;
+      margin-bottom: 10px;
+    }
+    .history-item::before {
+      content: '';
+      position: absolute;
+      left: -25px;
+      top: 6px;
+      width: 10px;
+      height: 10px;
+      background: var(--accent);
+      border-radius: 50%;
+    }
+    .history-date {
+      font-family: var(--font-mono);
+      font-size: 0.78rem;
+      font-weight: 700;
+      color: var(--text-primary);
+    }
+    .history-chamber {
+      font-size: 0.65rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      color: var(--text-muted);
+      background: var(--surface-alt);
+      border: 1px solid var(--border);
+      padding: 0 5px;
+      border-radius: 2px;
+      margin-left: 6px;
+    }
+    .history-action {
+      font-size: 0.82rem;
+      color: var(--text-secondary);
+      margin-top: 1px;
+    }
+
+    /* ── Related bills ── */
+    .related-card {
+      background: var(--surface-alt);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 10px 14px;
+      margin-bottom: 6px;
+    }
+    .related-loading {
+      font-size: 0.82rem;
+      color: var(--text-muted);
+      font-style: italic;
+    }
+
+    /* ── Priority selector ── */
     .priority-select {
-      padding: 2px 6px;
-      border: 1px solid #ccc;
-      border-radius: 4px;
+      padding: 4px 8px;
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
       font-size: 0.75rem;
+      font-family: var(--font-sans);
+      font-weight: 600;
       cursor: pointer;
-      background: white;
+      background: var(--surface-alt);
+      color: var(--text-secondary);
     }
 
-    /* Misc */
-    .empty { color: #888; font-style: italic; font-size: 0.9rem; }
-    .toolbar {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      margin-bottom: 12px;
+    /* ── Misc ── */
+    .empty {
+      color: var(--text-muted);
+      font-size: 0.92rem;
+      text-align: center;
+      padding: 40px 20px;
     }
-    .spinner { display: none; color: #666; font-size: 0.85rem; }
+    .spinner { display: none; color: var(--text-muted); font-size: 0.82rem; font-style: italic; }
     .spinner.active { display: inline; }
-    .search-summary { font-size: 0.85rem; color: #666; margin-bottom: 8px; }
     .notification {
       position: fixed;
       top: 16px;
       right: 16px;
-      padding: 12px 20px;
-      border-radius: 8px;
-      font-size: 0.9rem;
+      padding: 12px 24px;
+      border-radius: var(--radius);
+      font-size: 0.88rem;
+      font-weight: 600;
       color: white;
-      z-index: 100;
+      z-index: 1000;
       opacity: 0;
-      transition: opacity 0.3s;
+      transform: translateY(-8px);
+      transition: all 0.3s;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.15);
     }
-    .notification.show { opacity: 1; }
-    .notification.success { background: #16a34a; }
-    .notification.error { background: #dc2626; }
-    .notification.info { background: #2563eb; }
-
-    /* Related bills */
-    .related-loading { font-size: 0.82rem; color: #666; font-style: italic; }
-    .related-card {
-      background: #f9fafb;
-      border: 1px solid #e5e7eb;
-      border-radius: 6px;
-      padding: 8px 12px;
-      margin-bottom: 4px;
-      font-size: 0.85rem;
-    }
-
-    /* Session bar */
-    .session-bar {
+    .notification.show { opacity: 1; transform: translateY(0); }
+    .notification.success { background: var(--green); }
+    .notification.error { background: var(--red); }
+    .notification.info { background: var(--navy); }
+    .confidence-note {
+      font-size: 0.78rem;
+      color: var(--text-muted);
+      font-style: italic;
       margin-top: 6px;
     }
-    .session-progress {
-      height: 4px;
-      background: #e5e7eb;
-      border-radius: 2px;
-      overflow: hidden;
-    }
-    .session-progress-fill {
-      height: 100%;
-      border-radius: 2px;
-      transition: width 0.3s;
-    }
-    .session-progress-fill.ok { background: #2563eb; }
-    .session-progress-fill.warning { background: #f59e0b; }
-    .session-progress-fill.danger { background: #dc2626; }
-    .session-text {
-      font-size: 0.72rem;
-      color: #888;
-      margin-top: 2px;
-    }
 
-    /* Chart bars */
-    .chart-bar-container {
-      margin-bottom: 6px;
-    }
-    .chart-bar-label {
-      font-size: 0.78rem;
-      color: #555;
-      margin-bottom: 2px;
-    }
-    .chart-bar-track {
-      height: 20px;
-      background: #e5e7eb;
-      border-radius: 4px;
-      overflow: hidden;
-      position: relative;
-    }
-    .chart-bar-fill {
-      height: 100%;
-      border-radius: 4px;
-      display: flex;
-      align-items: center;
-      padding-left: 6px;
-      font-size: 0.7rem;
-      color: white;
-      font-weight: 600;
-      min-width: 20px;
-    }
-    .card-actions {
-      display: flex;
-      gap: 6px;
-      align-items: center;
-      flex-shrink: 0;
+    /* ── Responsive ── */
+    @media (max-width: 700px) {
+      .main { padding: 16px; }
+      .card-header { flex-direction: column; }
+      .card-actions { margin-top: 10px; }
+      .filter-bar { gap: 6px; }
+      .chart-label { width: 70px; font-size: 0.75rem; }
     }
   </style>
 </head>
 <body>
-  <h1>Legislation Tracker</h1>
-
-  <!-- Navigation Tabs -->
-  <div class="tabs">
-    <button class="tab active" data-tab="dashboard" onclick="switchTab('dashboard')">Dashboard</button>
-    <button class="tab" data-tab="bills" onclick="switchTab('bills')">Tracked Bills</button>
-    <button class="tab" data-tab="search" onclick="switchTab('search')">Search</button>
-  </div>
-
-  <!-- Dashboard Tab -->
-  <div id="tab-dashboard" class="tab-content active">
-    <div id="dashboardContent">
-      <p class="empty">Loading dashboard...</p>
-    </div>
-  </div>
-
-  <!-- Bills Tab -->
-  <div id="tab-bills" class="tab-content">
-    <div class="toolbar">
-      <h2>Tracked Bills</h2>
-      <button class="btn-check" onclick="triggerCheck()">Check Now</button>
-    </div>
-
-    <!-- Filter Bar -->
-    <div class="filter-bar">
-      <label>Filter:</label>
-      <select id="filterState" onchange="loadBills()">
-        <option value="">All States</option>
-      </select>
-      <select id="filterStatus" onchange="loadBills()">
-        <option value="">All Statuses</option>
-        <option value="1">Introduced</option>
-        <option value="2">Engrossed</option>
-        <option value="3">Enrolled</option>
-        <option value="4">Passed</option>
-        <option value="5">Vetoed</option>
-        <option value="6">Failed</option>
-      </select>
-      <select id="filterPriority" onchange="loadBills()">
-        <option value="">All Priorities</option>
-        <option value="high">High</option>
-        <option value="medium">Medium</option>
-        <option value="low">Low</option>
-      </select>
-      <select id="filterPassage" onchange="loadBills()">
-        <option value="">All Likelihood</option>
-        <option value="Very Likely">Very Likely</option>
-        <option value="Likely">Likely</option>
-        <option value="Possible">Possible</option>
-        <option value="Unlikely">Unlikely</option>
-        <option value="Very Unlikely">Very Unlikely</option>
-        <option value="Dead">Dead</option>
-      </select>
-      <label>Sort:</label>
-      <select id="sortBy" onchange="loadBills()">
-        <option value="date">Last Activity</option>
-        <option value="priority">Priority</option>
-        <option value="state">State</option>
-        <option value="status">Status</option>
-        <option value="title">Title</option>
-      </select>
-      <select id="sortOrder" onchange="loadBills()">
-        <option value="desc">Newest First</option>
-        <option value="asc">Oldest First</option>
-      </select>
-    </div>
-
-    <span class="spinner" id="checkSpinner">Checking bills...</span>
-    <div id="trackedBills"></div>
-  </div>
-
-  <!-- Search Tab -->
-  <div id="tab-search" class="tab-content">
-    <div class="section">
-      <h2>Search Bills</h2>
-      <div class="search-bar">
-        <select id="stateSelect">
-          <option value="ALL">All States</option>
-        </select>
-        <input type="text" id="queryInput" placeholder="Search terms (e.g., artificial intelligence)" />
-        <button onclick="searchBills()">Search</button>
-        <span class="spinner" id="searchSpinner">Searching...</span>
+  <!-- Header -->
+  <header class="site-header">
+    <div class="header-inner">
+      <div class="site-title">Legislation Tracker</div>
+      <div class="site-subtitle">State-level bill tracking for solar energy developers</div>
+      <div class="tabs">
+        <button class="tab active" data-tab="dashboard" onclick="switchTab('dashboard')">Dashboard</button>
+        <button class="tab" data-tab="bills" onclick="switchTab('bills')">Tracked Bills</button>
+        <button class="tab" data-tab="search" onclick="switchTab('search')">Search</button>
       </div>
-      <div id="searchSummary" class="search-summary"></div>
-      <div id="searchResults"></div>
+    </div>
+  </header>
+
+  <div class="main">
+    <!-- Dashboard Tab -->
+    <div id="tab-dashboard" class="tab-content active">
+      <div id="dashboardContent">
+        <p class="empty">Loading dashboard...</p>
+      </div>
+    </div>
+
+    <!-- Bills Tab -->
+    <div id="tab-bills" class="tab-content">
+      <div class="toolbar">
+        <div class="toolbar-title">Tracked Bills</div>
+        <button class="btn btn-check" onclick="triggerCheck()">Check Now</button>
+      </div>
+
+      <div class="filter-bar">
+        <span class="filter-label">Filter</span>
+        <select id="filterState" onchange="loadBills()">
+          <option value="">All States</option>
+        </select>
+        <select id="filterStatus" onchange="loadBills()">
+          <option value="">All Statuses</option>
+          <option value="1">Introduced</option>
+          <option value="2">Engrossed</option>
+          <option value="3">Enrolled</option>
+          <option value="4">Passed</option>
+          <option value="5">Vetoed</option>
+          <option value="6">Failed</option>
+        </select>
+        <select id="filterPriority" onchange="loadBills()">
+          <option value="">All Priorities</option>
+          <option value="high">High</option>
+          <option value="medium">Medium</option>
+          <option value="low">Low</option>
+        </select>
+        <select id="filterPassage" onchange="loadBills()">
+          <option value="">All Likelihood</option>
+          <option value="Very Likely">Very Likely</option>
+          <option value="Likely">Likely</option>
+          <option value="Possible">Possible</option>
+          <option value="Unlikely">Unlikely</option>
+          <option value="Very Unlikely">Very Unlikely</option>
+          <option value="Dead">Dead</option>
+        </select>
+        <div class="filter-divider"></div>
+        <span class="filter-label">Sort</span>
+        <select id="sortBy" onchange="loadBills()">
+          <option value="date">Last Activity</option>
+          <option value="priority">Priority</option>
+          <option value="state">State</option>
+          <option value="status">Status</option>
+          <option value="title">Title</option>
+        </select>
+        <select id="sortOrder" onchange="loadBills()">
+          <option value="desc">Newest First</option>
+          <option value="asc">Oldest First</option>
+        </select>
+      </div>
+
+      <span class="spinner" id="checkSpinner">Checking bills...</span>
+      <div id="trackedBills"></div>
+    </div>
+
+    <!-- Search Tab -->
+    <div id="tab-search" class="tab-content">
+      <div class="section">
+        <div class="toolbar-title" style="margin-bottom:16px">Search Bills</div>
+        <div class="search-bar">
+          <select id="stateSelect">
+            <option value="ALL">All States</option>
+          </select>
+          <input type="text" id="queryInput" placeholder="Search terms (e.g., solar energy, net metering)" />
+          <button class="btn btn-primary" onclick="searchBills()">Search</button>
+          <span class="spinner" id="searchSpinner">Searching...</span>
+        </div>
+        <div id="searchSummary" class="search-summary"></div>
+        <div id="searchResults"></div>
+      </div>
     </div>
   </div>
 
@@ -580,7 +974,7 @@
     };
 
     const TIMELINE_STEPS = [
-      { status: 1, label: "Introduced" },
+      { status: 1, label: "Intro" },
       { status: 2, label: "Engrossed" },
       { status: 3, label: "Enrolled" },
       { status: 4, label: "Passed" },
@@ -606,7 +1000,6 @@
       document.querySelectorAll(".tab-content").forEach(t => t.classList.remove("active"));
       document.querySelector(`[data-tab="${tab}"]`).classList.add("active");
       document.getElementById(`tab-${tab}`).classList.add("active");
-
       if (tab === "dashboard") loadDashboard();
       if (tab === "bills") loadBills();
     }
@@ -625,32 +1018,37 @@
         const resp = await fetch("/api/dashboard");
         const data = await resp.json();
 
+        if (data.total_bills === 0) {
+          container.innerHTML = '<p class="empty">No bills tracked yet. Go to the Search tab to find and track bills.</p>';
+          return;
+        }
+
         let html = "";
 
         // Stat cards
         html += '<div class="dashboard-grid">';
-        html += `<div class="stat-card"><div class="stat-number">${data.total_bills}</div><div class="stat-label">Bills Tracked</div></div>`;
-        html += `<div class="stat-card"><div class="stat-number" style="color:#dc2626">${data.by_priority.high}</div><div class="stat-label">High Priority</div></div>`;
-        html += `<div class="stat-card"><div class="stat-number" style="color:#d97706">${data.by_priority.medium}</div><div class="stat-label">Medium Priority</div></div>`;
-        html += `<div class="stat-card"><div class="stat-number" style="color:#16a34a">${data.by_priority.low}</div><div class="stat-label">Low Priority</div></div>`;
+        html += `<div class="stat-card accent"><div class="stat-number accent">${data.total_bills}</div><div class="stat-label">Bills Tracked</div></div>`;
+        html += `<div class="stat-card red"><div class="stat-number red">${data.by_priority.high}</div><div class="stat-label">High Priority</div></div>`;
+        html += `<div class="stat-card yellow"><div class="stat-number yellow">${data.by_priority.medium}</div><div class="stat-label">Medium Priority</div></div>`;
+        html += `<div class="stat-card green"><div class="stat-number green">${data.by_priority.low}</div><div class="stat-label">Low Priority</div></div>`;
         html += '</div>';
 
         // Status breakdown
         const statusEntries = Object.entries(data.by_status);
         if (statusEntries.length > 0) {
-          html += '<div class="section"><h3>Bills by Status</h3>';
+          html += '<div class="section"><div class="section-title">Bills by Status</div>';
           const maxCount = Math.max(...statusEntries.map(e => e[1]));
           const statusColors = {
-            "Introduced": "#3b82f6", "Engrossed": "#8b5cf6", "Enrolled": "#f59e0b",
-            "Passed": "#16a34a", "Vetoed": "#ef4444", "Failed": "#6b7280"
+            "Introduced": "#3498db", "Engrossed": "#8e44ad", "Enrolled": "#f39c12",
+            "Passed": "#27ae60", "Vetoed": "#e74c3c", "Failed": "#7f8c8d"
           };
           statusEntries.forEach(([status, count]) => {
             const pct = maxCount > 0 ? (count / maxCount) * 100 : 0;
-            const color = statusColors[status] || "#3b82f6";
-            html += `<div class="chart-bar-container">
-              <div class="chart-bar-label">${esc(status)}</div>
-              <div class="chart-bar-track">
-                <div class="chart-bar-fill" style="width:${Math.max(pct, 8)}%;background:${color}">${count}</div>
+            const color = statusColors[status] || "#3498db";
+            html += `<div class="chart-row">
+              <span class="chart-label">${esc(status)}</span>
+              <div class="chart-track">
+                <div class="chart-fill" style="width:${Math.max(pct, 5)}%;background:${color}">${count}</div>
               </div>
             </div>`;
           });
@@ -660,15 +1058,15 @@
         // State breakdown
         const stateEntries = Object.entries(data.by_state);
         if (stateEntries.length > 0) {
-          html += '<div class="section"><h3>Bills by State</h3>';
+          html += '<div class="section"><div class="section-title">Bills by State</div>';
           const maxState = Math.max(...stateEntries.map(e => e[1]));
           stateEntries.sort((a, b) => b[1] - a[1]);
           stateEntries.forEach(([state, count]) => {
             const pct = maxState > 0 ? (count / maxState) * 100 : 0;
-            html += `<div class="chart-bar-container">
-              <div class="chart-bar-label">${esc(state)}</div>
-              <div class="chart-bar-track">
-                <div class="chart-bar-fill" style="width:${Math.max(pct, 8)}%;background:#2563eb">${count}</div>
+            html += `<div class="chart-row">
+              <span class="chart-label">${esc(state)}</span>
+              <div class="chart-track">
+                <div class="chart-fill" style="width:${Math.max(pct, 5)}%;background:var(--navy)">${count}</div>
               </div>
             </div>`;
           });
@@ -677,7 +1075,7 @@
 
         // Session warnings
         if (data.session_warnings.length > 0) {
-          html += '<div class="section"><h3>Session Warnings</h3>';
+          html += '<div class="section"><div class="section-title">Session Warnings</div>';
           data.session_warnings.forEach(w => {
             html += `<div class="warning-banner">
               <div class="warning-title">${esc(w.state)} ${esc(w.bill_number)}: ${esc(w.title)}</div>
@@ -689,20 +1087,16 @@
 
         // Upcoming hearings
         if (data.upcoming_hearings.length > 0) {
-          html += '<div class="section"><h3>Upcoming Hearings</h3>';
+          html += '<div class="section"><div class="section-title">Upcoming Hearings</div>';
           data.upcoming_hearings.forEach(h => {
             html += `<div class="hearing-item">
               <span class="hearing-date">${esc(h.date)}</span>
-              <span>${esc(h.state)} ${esc(h.bill_number)}</span>
-              <span>${esc(h.description)}</span>
-              <span style="font-size:0.8rem;color:#888">${esc(h.location)}</span>
+              <span class="hearing-bill">${esc(h.state)} ${esc(h.bill_number)}</span>
+              <span class="hearing-desc">${esc(h.description)}</span>
+              <span class="hearing-loc">${esc(h.location)}</span>
             </div>`;
           });
           html += '</div>';
-        }
-
-        if (data.total_bills === 0) {
-          html = '<p class="empty">No bills tracked yet. Go to Search to find and track bills.</p>';
         }
 
         container.innerHTML = html;
@@ -743,7 +1137,6 @@
         </div>`;
       });
 
-      // Add final status for vetoed/failed
       if (isVetoed) {
         html += `<div class="timeline-connector"></div>
           <div class="timeline-step">
@@ -763,26 +1156,24 @@
       return html;
     }
 
-    // --- Passage likelihood badge ---
-    function passageBadge(passage) {
+    // --- Passage score display ---
+    function passageGauge(passage) {
       if (!passage) return "";
-      const cls = {
-        "Very Likely": "badge-passage-very-likely",
-        "Likely": "badge-passage-likely",
-        "Possible": "badge-passage-possible",
-        "Unlikely": "badge-passage-unlikely",
-        "Very Unlikely": "badge-passage-very-unlikely",
-        "Dead": "badge-passage-dead",
-        "Passed": "badge-passage-passed",
-      }[passage.label] || "badge-passage-possible";
-      let html = `<span class="badge badge-passage ${cls}" title="${(passage.factors || []).join('; ')}">${passage.score}% ${passage.label}</span>`;
-      if (passage.model === "trained") {
-        html += `<span class="badge-confidence" style="color:#059669" title="Score from logistic regression trained on historical data">ML</span>`;
-      }
+      const labelKey = (passage.label || "").toLowerCase().replace(/\s+/g, "-");
+      const cls = `score-${labelKey}`;
+      let sublabel = "";
+      if (passage.model === "trained") sublabel = "ML Model";
+      else sublabel = "Heuristic";
       if (passage.confidence && passage.confidence !== "high") {
-        html += `<span class="badge-confidence">${passage.confidence} conf.</span>`;
+        sublabel += ` · ${passage.confidence} conf.`;
       }
-      return html;
+      return `<div class="score-gauge ${cls}">
+        <span class="score-number">${passage.score}</span>
+        <div class="score-meta">
+          <span class="score-label">${esc(passage.label)}</span>
+          <span class="score-sublabel">${sublabel}</span>
+        </div>
+      </div>`;
     }
 
     // --- Passage dimension breakdown ---
@@ -791,24 +1182,24 @@
       const dims = passage.dimensions;
       const dimNames = {
         procedural: "Procedural",
-        sponsors: "Sponsor Strength",
+        sponsors: "Sponsors",
         bipartisan: "Bipartisan",
         momentum: "Momentum",
-        timing: "Session Timing",
-        structure: "Bill Structure",
+        timing: "Timing",
+        structure: "Structure",
       };
       const dimColors = {
-        procedural: "#2563eb",
-        sponsors: "#7c3aed",
-        bipartisan: "#059669",
-        momentum: "#d97706",
-        timing: "#dc2626",
-        structure: "#6b7280",
+        procedural: "var(--navy)",
+        sponsors: "var(--purple)",
+        bipartisan: "var(--teal)",
+        momentum: "var(--accent)",
+        timing: "var(--red)",
+        structure: "var(--text-muted)",
       };
 
       let html = '';
       if (passage.model === "trained") {
-        html += '<div style="margin-bottom:8px;font-size:0.75rem;color:#059669;font-weight:600">Trained model (logistic regression on historical data)</div>';
+        html += '<div style="margin-bottom:8px"><span class="badge badge-ml">ML</span> <span style="font-size:0.78rem;color:var(--text-muted)">Logistic regression trained on historical data</span></div>';
       }
 
       html += '<div class="passage-breakdown">';
@@ -816,7 +1207,7 @@
         const d = dims[key];
         if (!d) continue;
         const pct = d.max > 0 ? (d.score / d.max * 100) : 0;
-        const color = dimColors[key] || "#6b7280";
+        const color = dimColors[key] || "var(--text-muted)";
         html += `
           <div class="passage-dim">
             <span class="passage-dim-label">${label}</span>
@@ -828,27 +1219,25 @@
       }
       html += '</div>';
 
-      // Key factors (shown for trained model)
+      // Key factors
       if (passage.model === "trained" && passage.factors && passage.factors.length > 0) {
-        html += '<div style="margin-top:8px"><strong style="font-size:0.8rem;color:#374151">Key Factors:</strong>';
+        html += '<div style="margin-top:10px"><h4 style="font-size:0.72rem;color:var(--text-muted);text-transform:uppercase;letter-spacing:1.2px;font-weight:700;margin-bottom:6px">Key Factors</h4>';
         passage.factors.forEach(f => {
           const isPositive = f.includes("helps");
-          const color = isPositive ? "#059669" : "#dc2626";
-          html += `<div style="font-size:0.75rem;color:${color};padding:1px 0">${esc(f)}</div>`;
+          html += `<div class="${isPositive ? 'factor-positive' : 'factor-negative'}">${isPositive ? '+' : '-'} ${esc(f)}</div>`;
         });
         html += '</div>';
       }
 
       // Risks
       if (passage.risks && passage.risks.length > 0) {
-        html += '<div style="margin-top:8px"><strong style="font-size:0.8rem;color:#991b1b">Risk Factors:</strong>';
+        html += '<div style="margin-top:10px"><h4 style="font-size:0.72rem;color:var(--text-muted);text-transform:uppercase;letter-spacing:1.2px;font-weight:700;margin-bottom:6px">Risk Factors</h4>';
         passage.risks.forEach(r => {
           html += `<div class="risk-item">${esc(r)}</div>`;
         });
         html += '</div>';
       }
 
-      // Confidence note
       if (passage.confidence === "low") {
         html += '<p class="confidence-note">Limited data available — score may not reflect actual prospects.</p>';
       }
@@ -871,7 +1260,7 @@
       let text = `${session.session_name || "Session"}: ${pct}% elapsed`;
       if (session.warning) text += ` — ${session.warning}`;
       return `<div class="session-bar">
-        <div class="session-progress"><div class="session-progress-fill ${cls}" style="width:${pct}%"></div></div>
+        <div class="session-track"><div class="session-fill ${cls}" style="width:${pct}%"></div></div>
         <div class="session-text">${esc(text)}</div>
       </div>`;
     }
@@ -901,7 +1290,7 @@
         }
 
         document.getElementById("searchSummary").textContent =
-          `Found ${summary.count || results.length} result(s) — page ${summary.page || 1} of ${summary.page_total || 1}`;
+          `${summary.count || results.length} result(s) — page ${summary.page || 1} of ${summary.page_total || 1}`;
 
         const container = document.getElementById("searchResults");
         results.forEach(r => {
@@ -909,13 +1298,14 @@
           card.className = "card";
           card.innerHTML = `
             <div class="card-header">
-              <div>
-                <div class="card-title">
+              <div style="flex:1">
+                <div>
                   <span class="badge badge-state">${esc(r.state)}</span>
-                  ${esc(r.bill_number)}: ${esc(r.title || "")}
+                  <span class="card-bill-id">${esc(r.bill_number)}</span>
                 </div>
+                <div class="card-title-text">${esc(r.title || "")}</div>
                 <div class="card-meta">
-                  Last action: ${esc(r.last_action_date || "N/A")} &mdash; ${esc((r.last_action || "").substring(0, 120))}
+                  Last action: ${esc(r.last_action_date || "N/A")} — ${esc((r.last_action || "").substring(0, 150))}
                 </div>
               </div>
               <div class="card-actions">
@@ -924,7 +1314,7 @@
                   <option value="high">High</option>
                   <option value="low">Low</option>
                 </select>
-                <button class="btn-sm btn-track" onclick="trackBill(${r.bill_id})">Track</button>
+                <button class="btn btn-track" onclick="trackBill(${r.bill_id})">Track</button>
               </div>
             </div>
           `;
@@ -1000,7 +1390,11 @@
     // --- Toggle bill details ---
     function toggleDetails(billId) {
       const el = document.getElementById(`details-${billId}`);
-      if (el) el.classList.toggle("open");
+      const btn = document.getElementById(`details-btn-${billId}`);
+      if (el) {
+        el.classList.toggle("open");
+        if (btn) btn.textContent = el.classList.contains("open") ? "Hide Details" : "Details";
+      }
     }
 
     // --- Load related bills ---
@@ -1013,21 +1407,21 @@
         const resp = await fetch(`/api/bills/${billId}/related`);
         const data = await resp.json();
         if (!data.related || data.related.length === 0) {
-          container.innerHTML = '<span style="font-size:0.82rem;color:#888">No related bills found.</span>';
+          container.innerHTML = '<span style="font-size:0.82rem;color:var(--text-muted)">No related bills found.</span>';
           return;
         }
         container.innerHTML = data.related.map(r => `
           <div class="related-card">
             <span class="badge badge-state">${esc(r.state)}</span>
             <strong>${esc(r.bill_number)}</strong>: ${esc(r.title)}
-            <div style="font-size:0.78rem;color:#888;margin-top:2px">
+            <div style="font-size:0.78rem;color:var(--text-muted);margin-top:2px">
               Last action: ${esc(r.last_action_date || "N/A")}
-              ${r.url ? ` | <a href="${esc(r.url)}" target="_blank">View</a>` : ""}
+              ${r.url ? ` · <a href="${esc(r.url)}" target="_blank" style="color:var(--accent);font-weight:600;text-decoration:none">View</a>` : ""}
             </div>
           </div>
         `).join("");
       } catch {
-        container.innerHTML = '<span style="font-size:0.82rem;color:#dc2626">Failed to load related bills.</span>';
+        container.innerHTML = '<span style="font-size:0.82rem;color:var(--red)">Failed to load related bills.</span>';
       }
     }
 
@@ -1040,16 +1434,16 @@
         const resp = await fetch(`/api/bills/${billId}/analyze`, {method: "POST"});
         const data = await resp.json();
         if (data.error && (!data.solar_keywords || data.solar_keywords.length === 0)) {
-          container.innerHTML = `<span style="font-size:0.82rem;color:#888">${esc(data.error)}</span>`;
+          container.innerHTML = `<span style="font-size:0.82rem;color:var(--text-muted)">${esc(data.error)}</span>`;
           return;
         }
         if (!data.solar_keywords || data.solar_keywords.length === 0) {
-          container.innerHTML = '<span style="font-size:0.82rem;color:#888">No solar-related keywords found in bill text.</span>';
+          container.innerHTML = '<span style="font-size:0.82rem;color:var(--text-muted)">No solar-related keywords found in bill text.</span>';
           return;
         }
-        container.innerHTML = `<div style="display:flex;flex-wrap:wrap;gap:4px">${data.solar_keywords.map(k => `<span class="badge" style="background:#fef3c7;color:#92400e;border:1px solid #fcd34d;margin:2px">${esc(k)}</span>`).join("")}</div>`;
+        container.innerHTML = `<div style="display:flex;flex-wrap:wrap;gap:4px">${data.solar_keywords.map(k => `<span class="badge badge-solar">${esc(k)}</span>`).join("")}</div>`;
       } catch {
-        container.innerHTML = '<span style="font-size:0.82rem;color:#dc2626">Failed to analyze bill text.</span>';
+        container.innerHTML = '<span style="font-size:0.82rem;color:var(--red)">Failed to analyze bill text.</span>';
       }
     }
 
@@ -1097,66 +1491,76 @@
           card.innerHTML = `
             <div class="card-header">
               <div style="flex:1">
-                <div class="card-title">
-                  <span class="badge badge-state">${esc(b.state)}</span>
+                <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:16px">
+                  <div>
+                    <div>
+                      <span class="badge badge-state">${esc(b.state)}</span>
+                      <span class="card-bill-id">${esc(b.bill_number)}</span>
+                    </div>
+                    <div class="card-title-text">${esc(b.title)}</div>
+                  </div>
+                  <div style="flex-shrink:0;text-align:right">
+                    ${passageGauge(b.passage)}
+                  </div>
+                </div>
+                <div class="card-badges">
                   <span class="badge badge-status">${esc(b.status_text || STATUS_CODES[b.status] || "Unknown")}</span>
                   ${priorityBadge(b.priority)}
-                  ${passageBadge(b.passage)}
-                  ${esc(b.bill_number)}: ${esc(b.title)}
+                  ${upcomingEvents.length > 0 ? `<span class="badge" style="background:#f3eeff;color:var(--purple);border:1px solid #d4c5f9">Hearing ${esc(upcomingEvents[0].date)}</span>` : ""}
                 </div>
                 ${renderTimeline(b.status)}
                 <div class="card-meta">
-                  Last action: ${esc(b.last_history_date || "N/A")} &mdash; ${esc((b.last_history_action || "").substring(0, 120))}
-                  ${b.committee ? `<br/>Committee: ${esc(b.committee)}` : ""}
-                  <br/>Sponsors: ${esc(sponsorText)}
-                  ${upcomingEvents.length > 0 ? `<br/><strong style="color:#7c3aed">Next hearing: ${esc(upcomingEvents[0].date)} — ${esc(upcomingEvents[0].description)}</strong>` : ""}
-                  <br/>
+                  Last action: ${esc(b.last_history_date || "N/A")} — ${esc((b.last_history_action || "").substring(0, 150))}
+                  ${b.committee ? `<br>Committee: ${esc(b.committee)}` : ""}
+                  <br>Sponsors: ${esc(sponsorText)}
+                  ${upcomingEvents.length > 0 ? `<br><strong style="color:var(--purple)">Next hearing: ${esc(upcomingEvents[0].date)} — ${esc(upcomingEvents[0].description)}</strong>` : ""}
+                  <br>
                   ${b.url ? `<a href="${esc(b.url)}" target="_blank">LegiScan</a>` : ""}
-                  ${b.state_link ? ` | <a href="${esc(b.state_link)}" target="_blank">Official</a>` : ""}
+                  ${b.state_link ? ` · <a href="${esc(b.state_link)}" target="_blank">Official</a>` : ""}
                 </div>
                 ${sessionBar(b.session_status)}
               </div>
-              <div class="card-actions">
+              <div class="card-actions" style="flex-direction:column;align-items:stretch;gap:4px;align-self:flex-start">
                 <select class="priority-select" onchange="changePriority(${b.bill_id}, this.value)" title="Set priority">
                   <option value="high" ${b.priority === "high" ? "selected" : ""}>High</option>
                   <option value="medium" ${b.priority === "medium" ? "selected" : ""}>Medium</option>
                   <option value="low" ${b.priority === "low" ? "selected" : ""}>Low</option>
                 </select>
-                <button class="btn-expand" onclick="toggleDetails(${b.bill_id})">Details</button>
-                <button class="btn-sm" onclick="refreshBill(${b.bill_id})" title="Re-fetch data from LegiScan">Refresh</button>
-                <button class="btn-sm btn-remove" onclick="removeBill(${b.bill_id})">Remove</button>
+                <button class="btn-link" id="details-btn-${b.bill_id}" onclick="toggleDetails(${b.bill_id})">Details</button>
+                <button class="btn btn-sm" onclick="refreshBill(${b.bill_id})" title="Re-fetch from LegiScan">Refresh</button>
+                <button class="btn btn-sm btn-remove" onclick="removeBill(${b.bill_id})">Remove</button>
               </div>
             </div>
 
             <div class="card-details" id="details-${b.bill_id}">
-              ${b.description ? `<div class="detail-section"><h4>Description</h4><p style="font-size:0.85rem;color:#555">${esc(b.description)}</p></div>` : ""}
+              ${b.description ? `<div class="detail-section"><h4>Description</h4><p>${esc(b.description)}</p></div>` : ""}
 
               ${(b.milestones || []).length > 0 ? `
                 <div class="detail-section">
                   <h4>Milestones Reached</h4>
-                  <div style="display:flex;flex-wrap:wrap;gap:6px">
-                    ${b.milestones.map(m => `<span class="badge" style="background:#dcfce7;color:#166534;border:1px solid #86efac;margin:2px">${esc(typeof m === 'string' ? m : m.label)}${m.date ? ` (${esc(m.date)})` : ''}</span>`).join("")}
+                  <div style="display:flex;flex-wrap:wrap;gap:4px">
+                    ${b.milestones.map(m => `<span class="badge badge-milestone">${esc(typeof m === 'string' ? m : m.label)}${m.date ? ` (${esc(m.date)})` : ''}</span>`).join("")}
                   </div>
                 </div>
               ` : `
                 <div class="detail-section">
                   <h4>Milestones Reached</h4>
-                  <p style="font-size:0.85rem;color:#888;font-style:italic">No milestones recorded yet.</p>
+                  <p style="font-size:0.85rem;color:var(--text-muted);font-style:italic">No milestones recorded yet.</p>
                 </div>
               `}
 
               ${(b.history || []).length > 0 ? `
                 <div class="detail-section">
                   <h4>History Timeline</h4>
-                  <ul style="border-left:2px solid #2563eb;padding-left:16px;margin-left:4px">
+                  <div class="history-timeline">
                     ${b.history.slice().sort((a, b) => b.date.localeCompare(a.date)).map(h => `
-                      <li style="margin-bottom:6px;position:relative">
-                        <span style="position:absolute;left:-21px;top:4px;width:8px;height:8px;background:#2563eb;border-radius:50;display:inline-block"></span>
-                        <strong>${esc(h.date)}</strong>${h.chamber ? ` <span class="badge" style="background:#f3f4f6;color:#555;font-size:0.7rem">${esc(h.chamber)}</span>` : ""}
-                        <div style="color:#555">${esc(h.action)}</div>
-                      </li>
+                      <div class="history-item">
+                        <span class="history-date">${esc(h.date)}</span>
+                        ${h.chamber ? `<span class="history-chamber">${esc(h.chamber)}</span>` : ""}
+                        <div class="history-action">${esc(h.action)}</div>
+                      </div>
                     `).join("")}
-                  </ul>
+                  </div>
                 </div>
               ` : ""}
 
@@ -1164,7 +1568,7 @@
                 <div class="detail-section">
                   <h4>Sponsors (${b.sponsors.length})</h4>
                   <ul>
-                    ${b.sponsors.map(s => `<li>${esc(s.name)}${s.party ? ` (${esc(s.party)})` : ""}${s.sponsor_type ? ` — ${esc(String(s.sponsor_type))}` : ""}</li>`).join("")}
+                    ${b.sponsors.map(s => `<li><strong>${esc(s.name)}</strong>${s.party ? ` (${esc(s.party)})` : ""}${s.sponsor_type ? ` — <em>${esc(String(s.sponsor_type))}</em>` : ""}</li>`).join("")}
                   </ul>
                 </div>
               ` : ""}
@@ -1181,13 +1585,13 @@
               ${(b.subjects || []).length > 0 ? `
                 <div class="detail-section">
                   <h4>Subjects</h4>
-                  <div>${b.subjects.map(s => `<span class="badge" style="background:#f3f4f6;color:#374151;margin:2px">${esc(s)}</span>`).join(" ")}</div>
+                  <div style="display:flex;flex-wrap:wrap;gap:4px">${b.subjects.map(s => `<span class="badge badge-subject">${esc(s)}</span>`).join("")}</div>
                 </div>
               ` : ""}
 
               ${b.passage ? `
                 <div class="detail-section">
-                  <h4>Passage Likelihood: ${b.passage.score}/100 (${esc(b.passage.label)})${b.passage.confidence !== "high" ? ` <span class="badge-confidence">${b.passage.confidence} confidence</span>` : ""}</h4>
+                  <h4>Passage Likelihood: ${b.passage.score}/100 (${esc(b.passage.label)})${b.passage.confidence !== "high" ? ` <span class="badge-confidence">${b.passage.confidence}</span>` : ""}</h4>
                   ${passageBreakdown(b.passage)}
                 </div>
               ` : ""}
@@ -1196,8 +1600,8 @@
                 <h4>Solar Relevance Analysis</h4>
                 <div id="solar-${b.bill_id}">
                   ${(b.solar_keywords || []).length > 0 ?
-                    `<div style="display:flex;flex-wrap:wrap;gap:4px">${b.solar_keywords.map(k => `<span class="badge" style="background:#fef3c7;color:#92400e;border:1px solid #fcd34d;margin:2px">${esc(k)}</span>`).join("")}</div>` :
-                    `<button class="btn-expand" onclick="analyzeBill(${b.bill_id})">Analyze bill text for solar keywords</button>`
+                    `<div style="display:flex;flex-wrap:wrap;gap:4px">${b.solar_keywords.map(k => `<span class="badge badge-solar">${esc(k)}</span>`).join("")}</div>` :
+                    `<button class="btn-link" onclick="analyzeBill(${b.bill_id})">Analyze bill text for solar keywords</button>`
                   }
                 </div>
               </div>
@@ -1205,7 +1609,7 @@
               <div class="detail-section">
                 <h4>Related Bills</h4>
                 <div id="related-${b.bill_id}">
-                  <button class="btn-expand" onclick="loadRelated(${b.bill_id})">Find related bills</button>
+                  <button class="btn-link" onclick="loadRelated(${b.bill_id})">Find related bills across all states</button>
                 </div>
               </div>
             </div>
