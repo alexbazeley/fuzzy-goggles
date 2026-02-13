@@ -1,6 +1,6 @@
 # Legislation Tracker
 
-Track state-level bills with priority levels, sponsor monitoring, hearing dates, impact scoring, and email alerts when changes occur.
+Track state-level bills with priority levels, sponsor monitoring, hearing dates, passage likelihood scoring, and email alerts when changes occur.
 
 Uses the [LegiScan API](https://legiscan.com/legiscan) (free tier: 30K queries/month) for bill data and GitHub Actions for automated daily checks.
 
@@ -12,8 +12,8 @@ Uses the [LegiScan API](https://legiscan.com/legiscan) (free tier: 30K queries/m
 - **Hearing dates** — View upcoming committee hearings and calendar events
 - **Related bills** — Find similar legislation across all 50 states
 - **Dashboard view** — At-a-glance stats, status/state breakdowns, session warnings, and upcoming hearings
-- **Filtering & sorting** — Filter by state, status, priority, or impact level; sort by date, priority, state, status, or title
-- **Impact scoring** — 0–100 likelihood score based on status progression, sponsor count, bipartisan support, milestones, and recent activity
+- **Filtering & sorting** — Filter by state, status, priority, or passage likelihood; sort by date, priority, state, status, or title
+- **Passage likelihood scoring** — 0–100 predictive score across 7 analytical dimensions with visual breakdown, confidence rating, and risk callouts
 - **Session calendar awareness** — Warns when legislative sessions are ending and bills haven't advanced
 - **Visual progress timeline** — See exactly where each bill sits in the legislative process
 - **Email alerts** — Get notified of status changes, new sponsors, hearing dates, and milestone events
@@ -53,7 +53,7 @@ python -m legislator
 This opens a browser to `http://127.0.0.1:5000` with three tabs:
 
 - **Dashboard** — Overview stats, status/state charts, session warnings, and upcoming hearings
-- **Tracked Bills** — Your bills with filtering, sorting, priority controls, progress timelines, and expandable details (sponsors, hearings, subjects, impact score, related bills)
+- **Tracked Bills** — Your bills with filtering, sorting, priority controls, progress timelines, and expandable details (sponsors, hearings, subjects, passage likelihood breakdown, related bills)
 - **Search** — Find bills by state and keywords, set priority on track
 
 Tracked bills are saved to `data/tracked_bills.json`.
@@ -97,7 +97,7 @@ git push
 
 | Method | Endpoint | Description |
 |--------|----------|-------------|
-| `GET` | `/api/bills` | List tracked bills (supports `?state=`, `?status=`, `?priority=`, `?impact=`, `?sort=`, `?order=`) |
+| `GET` | `/api/bills` | List tracked bills (supports `?state=`, `?status=`, `?priority=`, `?passage=`, `?sort=`, `?order=`) |
 | `POST` | `/api/bills` | Track a new bill (`{bill_id, priority?}`) |
 | `DELETE` | `/api/bills/<id>` | Remove a tracked bill |
 | `PATCH` | `/api/bills/<id>/priority` | Set priority (`{priority: "high"\|"medium"\|"low"}`) |
@@ -119,19 +119,27 @@ git push
 | Vetoed | Vetoed by governor |
 | Failed | Did not pass |
 
-## Impact scoring
+## Passage likelihood scoring
 
-Each bill gets a 0–100 score estimating its likelihood of passing:
+Each bill gets a 0–100 score estimating its likelihood of becoming law, computed across 7 analytical dimensions:
 
-| Factor | Points |
-|--------|--------|
-| Status progression (Introduced → Passed) | 0–40 |
-| Sponsor count | 0–20 |
-| Bipartisan support | 0–15 |
-| Progress milestones reached | 0–15 |
-| Recent activity (last 7–30 days) | 0–10 |
+| Dimension | Max Pts | What it measures |
+|-----------|---------|------------------|
+| Procedural Progress | 30 | Legislative stage: introduced → committee → engrossed → enrolled → passed |
+| Sponsor Strength | 20 | Primary sponsors, co-sponsor count, bicameral and joint sponsors |
+| Bipartisan Coalition | 12 | Cross-party support depth (not just presence) |
+| Momentum & Velocity | 15 | Recency of activity, speed between milestones, upcoming hearings, action density |
+| Session Timing | 10 | Bill progress vs. session timeline (stalled bills late in session are penalized) |
+| Policy Context | 8 | Solar keyword breadth, energy-related subjects, high-interest topics |
+| Bill Structure | 5 | Chamber of origin, scope focus, bill type, amendments to existing law |
 
-Bills that are Vetoed or Failed are scored as "Dead" (0).
+**Labels:** Very Likely (75+), Likely (55–74), Possible (35–54), Unlikely (15–34), Very Unlikely (0–14), Dead (vetoed/failed), Passed.
+
+**Session decay:** Bills stalled in committee with session >70% elapsed have their score halved.
+
+**Confidence rating:** Based on data completeness — high, medium, or low. Low-confidence scores show a disclaimer.
+
+**Risk callouts:** Explicit warnings like "No bipartisan support", "Still in committee at 65% session elapsed", "Inactive 90+ days".
 
 ## Project structure
 
@@ -141,7 +149,7 @@ src/legislator/
   api.py         - LegiScan API client
   checker.py     - Change detection logic and data models
   emailer.py     - Email alert formatting/sending
-  scoring.py     - Impact scoring and session calendar awareness
+  scoring.py     - Passage likelihood scoring and session calendar awareness
   solar.py       - Solar energy keyword analysis for bill text
   related.py     - Related bills detection
   config.py      - Environment variable configuration

@@ -257,17 +257,80 @@
     .badge-priority-high { background: #fef2f2; color: #dc2626; border: 1px solid #fca5a5; }
     .badge-priority-medium { background: #fffbeb; color: #d97706; border: 1px solid #fcd34d; }
     .badge-priority-low { background: #f0fdf4; color: #16a34a; border: 1px solid #86efac; }
-    .badge-impact {
+    .badge-passage {
       padding: 2px 8px;
       border-radius: 12px;
       font-size: 0.72rem;
       font-weight: 600;
     }
-    .badge-impact-high { background: #dcfce7; color: #166534; }
-    .badge-impact-moderate { background: #dbeafe; color: #1e40af; }
-    .badge-impact-low { background: #fef3c7; color: #92400e; }
-    .badge-impact-very-low { background: #f3f4f6; color: #6b7280; }
-    .badge-impact-dead { background: #fef2f2; color: #dc2626; }
+    .badge-passage-very-likely { background: #dcfce7; color: #166534; }
+    .badge-passage-likely { background: #dbeafe; color: #1e40af; }
+    .badge-passage-possible { background: #fef3c7; color: #92400e; }
+    .badge-passage-unlikely { background: #fee2e2; color: #991b1b; }
+    .badge-passage-very-unlikely { background: #f3f4f6; color: #6b7280; }
+    .badge-passage-dead { background: #fef2f2; color: #dc2626; }
+    .badge-passage-passed { background: #dcfce7; color: #166534; }
+    .badge-confidence {
+      padding: 1px 6px;
+      border-radius: 8px;
+      font-size: 0.65rem;
+      font-weight: 500;
+      margin-left: 4px;
+      border: 1px solid #d1d5db;
+      color: #6b7280;
+    }
+
+    /* Passage likelihood breakdown */
+    .passage-breakdown { margin-top: 8px; }
+    .passage-dim {
+      display: flex;
+      align-items: center;
+      margin-bottom: 4px;
+      font-size: 0.8rem;
+    }
+    .passage-dim-label {
+      width: 140px;
+      flex-shrink: 0;
+      color: #374151;
+      font-weight: 500;
+    }
+    .passage-dim-bar {
+      flex: 1;
+      height: 14px;
+      background: #f3f4f6;
+      border-radius: 7px;
+      overflow: hidden;
+      margin: 0 8px;
+    }
+    .passage-dim-fill {
+      height: 100%;
+      border-radius: 7px;
+      transition: width 0.3s ease;
+    }
+    .passage-dim-score {
+      width: 50px;
+      text-align: right;
+      font-size: 0.75rem;
+      color: #6b7280;
+    }
+    .risk-item {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      padding: 4px 8px;
+      margin: 3px 0;
+      background: #fef2f2;
+      border-left: 3px solid #dc2626;
+      border-radius: 4px;
+      font-size: 0.8rem;
+      color: #991b1b;
+    }
+    .confidence-note {
+      font-size: 0.75rem;
+      color: #9ca3af;
+      font-style: italic;
+      margin-top: 4px;
+    }
 
     /* Buttons */
     .btn-sm {
@@ -456,12 +519,13 @@
         <option value="medium">Medium</option>
         <option value="low">Low</option>
       </select>
-      <select id="filterImpact" onchange="loadBills()">
-        <option value="">All Impact</option>
-        <option value="High">High</option>
-        <option value="Moderate">Moderate</option>
-        <option value="Low">Low</option>
-        <option value="Very Low">Very Low</option>
+      <select id="filterPassage" onchange="loadBills()">
+        <option value="">All Likelihood</option>
+        <option value="Very Likely">Very Likely</option>
+        <option value="Likely">Likely</option>
+        <option value="Possible">Possible</option>
+        <option value="Unlikely">Unlikely</option>
+        <option value="Very Unlikely">Very Unlikely</option>
         <option value="Dead">Dead</option>
       </select>
       <label>Sort:</label>
@@ -699,17 +763,79 @@
       return html;
     }
 
-    // --- Impact badge ---
-    function impactBadge(impact) {
-      if (!impact) return "";
+    // --- Passage likelihood badge ---
+    function passageBadge(passage) {
+      if (!passage) return "";
       const cls = {
-        "High": "badge-impact-high",
-        "Moderate": "badge-impact-moderate",
-        "Low": "badge-impact-low",
-        "Very Low": "badge-impact-very-low",
-        "Dead": "badge-impact-dead",
-      }[impact.label] || "badge-impact-low";
-      return `<span class="badge badge-impact ${cls}" title="${impact.factors.join('; ')}">${impact.score}% ${impact.label}</span>`;
+        "Very Likely": "badge-passage-very-likely",
+        "Likely": "badge-passage-likely",
+        "Possible": "badge-passage-possible",
+        "Unlikely": "badge-passage-unlikely",
+        "Very Unlikely": "badge-passage-very-unlikely",
+        "Dead": "badge-passage-dead",
+        "Passed": "badge-passage-passed",
+      }[passage.label] || "badge-passage-possible";
+      let html = `<span class="badge badge-passage ${cls}" title="${(passage.factors || []).join('; ')}">${passage.score}% ${passage.label}</span>`;
+      if (passage.confidence && passage.confidence !== "high") {
+        html += `<span class="badge-confidence">${passage.confidence} conf.</span>`;
+      }
+      return html;
+    }
+
+    // --- Passage dimension breakdown ---
+    function passageBreakdown(passage) {
+      if (!passage || !passage.dimensions) return "";
+      const dims = passage.dimensions;
+      const dimNames = {
+        procedural: "Procedural",
+        sponsors: "Sponsor Strength",
+        bipartisan: "Bipartisan",
+        momentum: "Momentum",
+        timing: "Session Timing",
+        context: "Policy Context",
+        structure: "Bill Structure",
+      };
+      const dimColors = {
+        procedural: "#2563eb",
+        sponsors: "#7c3aed",
+        bipartisan: "#059669",
+        momentum: "#d97706",
+        timing: "#dc2626",
+        context: "#0891b2",
+        structure: "#6b7280",
+      };
+      let html = '<div class="passage-breakdown">';
+      for (const [key, label] of Object.entries(dimNames)) {
+        const d = dims[key];
+        if (!d) continue;
+        const pct = d.max > 0 ? (d.score / d.max * 100) : 0;
+        const color = dimColors[key] || "#6b7280";
+        html += `
+          <div class="passage-dim">
+            <span class="passage-dim-label">${label}</span>
+            <div class="passage-dim-bar">
+              <div class="passage-dim-fill" style="width:${pct}%;background:${color}"></div>
+            </div>
+            <span class="passage-dim-score">${d.score}/${d.max}</span>
+          </div>`;
+      }
+      html += '</div>';
+
+      // Risks
+      if (passage.risks && passage.risks.length > 0) {
+        html += '<div style="margin-top:8px"><strong style="font-size:0.8rem;color:#991b1b">Risk Factors:</strong>';
+        passage.risks.forEach(r => {
+          html += `<div class="risk-item">${esc(r)}</div>`;
+        });
+        html += '</div>';
+      }
+
+      // Confidence note
+      if (passage.confidence === "low") {
+        html += '<p class="confidence-note">Limited data available — score may not reflect actual prospects.</p>';
+      }
+
+      return html;
     }
 
     // --- Priority badge ---
@@ -916,14 +1042,14 @@
         const state = document.getElementById("filterState").value;
         const status = document.getElementById("filterStatus").value;
         const priority = document.getElementById("filterPriority").value;
-        const impact = document.getElementById("filterImpact").value;
+        const passage = document.getElementById("filterPassage").value;
         const sort = document.getElementById("sortBy").value;
         const order = document.getElementById("sortOrder").value;
 
         if (state) params.set("state", state);
         if (status) params.set("status", status);
         if (priority) params.set("priority", priority);
-        if (impact) params.set("impact", impact);
+        if (passage) params.set("passage", passage);
         params.set("sort", sort);
         params.set("order", order);
 
@@ -957,7 +1083,7 @@
                   <span class="badge badge-state">${esc(b.state)}</span>
                   <span class="badge badge-status">${esc(b.status_text || STATUS_CODES[b.status] || "Unknown")}</span>
                   ${priorityBadge(b.priority)}
-                  ${impactBadge(b.impact)}
+                  ${passageBadge(b.passage)}
                   ${esc(b.bill_number)}: ${esc(b.title)}
                 </div>
                 ${renderTimeline(b.status)}
@@ -1041,12 +1167,10 @@
                 </div>
               ` : ""}
 
-              ${b.impact ? `
+              ${b.passage ? `
                 <div class="detail-section">
-                  <h4>Impact Score: ${b.impact.score}/100 (${esc(b.impact.label)})</h4>
-                  <ul>
-                    ${b.impact.factors.map(f => `<li>${esc(f)}</li>`).join("")}
-                  </ul>
+                  <h4>Passage Likelihood: ${b.passage.score}/100 (${esc(b.passage.label)})${b.passage.confidence !== "high" ? ` <span class="badge-confidence">${b.passage.confidence} confidence</span>` : ""}</h4>
+                  ${passageBreakdown(b.passage)}
                 </div>
               ` : ""}
 
