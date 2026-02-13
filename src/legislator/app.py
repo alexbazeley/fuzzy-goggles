@@ -19,6 +19,7 @@ from legislator.config import get_config, require_email_config
 from legislator.emailer import send_alert
 from legislator.scoring import compute_impact_score, get_session_status
 from legislator.related import find_related_bills
+from legislator.solar import analyze_bill_text, decode_bill_text
 
 DATA_PATH = Path(__file__).resolve().parent.parent.parent / "data" / "tracked_bills.json"
 STATIC_DIR = Path(__file__).resolve().parent / "static"
@@ -66,18 +67,31 @@ def create_app() -> Flask:
             bills.sort(key=lambda b: b.last_history_date or "", reverse=reverse)
 
         # Enrich each bill with impact score, session status, and milestones
+        impact_filter = request.args.get("impact")
+
         result = []
         for b in bills:
             d = b.to_dict()
             d["impact"] = compute_impact_score(b)
+
+            # Filter by impact label after computing scores
+            if impact_filter and d["impact"]["label"] != impact_filter:
+                continue
+
             session_info = get_session_status(b)
             if session_info:
                 d["session_status"] = session_info
-            # Map progress event codes to human-readable milestone labels
-            d["milestones"] = [
-                PROGRESS_EVENTS.get(code, f"Event {code}")
-                for code in b.progress_events
-            ]
+            # Map progress event codes to human-readable milestone labels with dates
+            if b.progress_details:
+                d["milestones"] = [
+                    {"label": PROGRESS_EVENTS.get(p["event"], f"Event {p['event']}"), "date": p.get("date", "")}
+                    for p in b.progress_details
+                ]
+            else:
+                d["milestones"] = [
+                    {"label": PROGRESS_EVENTS.get(code, f"Event {code}"), "date": ""}
+                    for code in b.progress_events
+                ]
             result.append(d)
 
         return jsonify(result)
@@ -119,6 +133,7 @@ def create_app() -> Flask:
             last_history_date=latest["date"],
             last_history_action=latest["action"],
             progress_events=[p["event"] for p in progress],
+            progress_details=[{"event": p["event"], "date": p.get("date", "")} for p in progress],
             priority=body.get("priority", "medium"),
             sponsors=_extract_sponsors(bill_data),
             calendar=_extract_calendar(bill_data),
@@ -130,6 +145,7 @@ def create_app() -> Flask:
             subjects=_extract_subjects(bill_data),
             committee=committee.get("name", "") if committee else "",
             committee_id=committee.get("committee_id", 0) if committee else 0,
+            history=[{"date": h["date"], "action": h["action"], "chamber": h.get("chamber", ""), "chamber_id": h.get("chamber_id", 0)} for h in history],
         )
 
         bills.append(new_bill)
@@ -168,12 +184,14 @@ def create_app() -> Flask:
 
         progress = bill_data.get("progress", [])
         bill.progress_events = [p["event"] for p in progress]
+        bill.progress_details = [{"event": p["event"], "date": p.get("date", "")} for p in progress]
 
         history = bill_data.get("history", [])
         if history:
             latest = max(history, key=lambda h: h["date"])
             bill.last_history_date = latest["date"]
             bill.last_history_action = latest["action"]
+            bill.history = [{"date": h["date"], "action": h["action"], "chamber": h.get("chamber", ""), "chamber_id": h.get("chamber_id", 0)} for h in history]
 
         session = bill_data.get("session", {})
         if session:
@@ -191,11 +209,62 @@ def create_app() -> Flask:
 
         d = bill.to_dict()
         d["impact"] = compute_impact_score(bill)
-        d["milestones"] = [
-            PROGRESS_EVENTS.get(code, f"Event {code}")
-            for code in bill.progress_events
-        ]
+        if bill.progress_details:
+            d["milestones"] = [
+                {"label": PROGRESS_EVENTS.get(p["event"], f"Event {p['event']}"), "date": p.get("date", "")}
+                for p in bill.progress_details
+            ]
+        else:
+            d["milestones"] = [
+                {"label": PROGRESS_EVENTS.get(code, f"Event {code}"), "date": ""}
+                for code in bill.progress_events
+            ]
         return jsonify(d)
+
+    @app.route("/api/bills/<int:bill_id>/analyze", methods=["POST"])
+    def analyze_bill(bill_id: int):
+        """Fetch bill text from LegiScan and scan for solar-relevant keywords."""
+        bills = load_tracked_bills(DATA_PATH)
+        bill = next((b for b in bills if b.bill_id == bill_id), None)
+        if not bill:
+            return jsonify({"error": "Bill not found"}), 404
+
+        # Return cached results if available
+        if bill.solar_keywords:
+            return jsonify({"bill_id": bill_id, "solar_keywords": bill.solar_keywords, "cached": True})
+
+        try:
+            bill_data = api.get_bill(bill_id)
+        except Exception as e:
+            return jsonify({"error": str(e)}), 502
+
+        # LegiScan provides text documents in the 'texts' array
+        texts = bill_data.get("texts", [])
+        if not texts:
+            return jsonify({"bill_id": bill_id, "solar_keywords": [], "error": "No bill text available"})
+
+        # Get the most recent text document
+        latest_text = max(texts, key=lambda t: t.get("date", ""))
+        doc_id = latest_text.get("doc_id", 0)
+        if not doc_id:
+            return jsonify({"bill_id": bill_id, "solar_keywords": [], "error": "No doc_id found"})
+
+        try:
+            doc_data = api.get_bill_text(doc_id)
+        except Exception as e:
+            return jsonify({"error": f"Failed to fetch bill text: {e}"}), 502
+
+        text_content = decode_bill_text(doc_data)
+        if not text_content:
+            return jsonify({"bill_id": bill_id, "solar_keywords": [], "error": "Could not decode bill text (may be PDF)"})
+
+        keywords = analyze_bill_text(text_content)
+
+        # Cache results
+        bill.solar_keywords = keywords
+        save_tracked_bills(bills, DATA_PATH)
+
+        return jsonify({"bill_id": bill_id, "solar_keywords": keywords, "cached": False})
 
     @app.route("/api/bills/<int:bill_id>", methods=["DELETE"])
     def remove_bill(bill_id: int):

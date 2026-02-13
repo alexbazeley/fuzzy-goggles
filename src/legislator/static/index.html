@@ -456,6 +456,14 @@
         <option value="medium">Medium</option>
         <option value="low">Low</option>
       </select>
+      <select id="filterImpact" onchange="loadBills()">
+        <option value="">All Impact</option>
+        <option value="High">High</option>
+        <option value="Moderate">Moderate</option>
+        <option value="Low">Low</option>
+        <option value="Very Low">Very Low</option>
+        <option value="Dead">Dead</option>
+      </select>
       <label>Sort:</label>
       <select id="sortBy" onchange="loadBills()">
         <option value="date">Last Activity</option>
@@ -879,6 +887,28 @@
       }
     }
 
+    // --- Analyze bill text for solar keywords ---
+    async function analyzeBill(billId) {
+      const container = document.getElementById(`solar-${billId}`);
+      if (!container) return;
+      container.innerHTML = '<span class="related-loading">Analyzing bill text...</span>';
+      try {
+        const resp = await fetch(`/api/bills/${billId}/analyze`, {method: "POST"});
+        const data = await resp.json();
+        if (data.error && (!data.solar_keywords || data.solar_keywords.length === 0)) {
+          container.innerHTML = `<span style="font-size:0.82rem;color:#888">${esc(data.error)}</span>`;
+          return;
+        }
+        if (!data.solar_keywords || data.solar_keywords.length === 0) {
+          container.innerHTML = '<span style="font-size:0.82rem;color:#888">No solar-related keywords found in bill text.</span>';
+          return;
+        }
+        container.innerHTML = `<div style="display:flex;flex-wrap:wrap;gap:4px">${data.solar_keywords.map(k => `<span class="badge" style="background:#fef3c7;color:#92400e;border:1px solid #fcd34d;margin:2px">${esc(k)}</span>`).join("")}</div>`;
+      } catch {
+        container.innerHTML = '<span style="font-size:0.82rem;color:#dc2626">Failed to analyze bill text.</span>';
+      }
+    }
+
     // --- Load tracked bills ---
     async function loadBills() {
       try {
@@ -886,12 +916,14 @@
         const state = document.getElementById("filterState").value;
         const status = document.getElementById("filterStatus").value;
         const priority = document.getElementById("filterPriority").value;
+        const impact = document.getElementById("filterImpact").value;
         const sort = document.getElementById("sortBy").value;
         const order = document.getElementById("sortOrder").value;
 
         if (state) params.set("state", state);
         if (status) params.set("status", status);
         if (priority) params.set("priority", priority);
+        if (impact) params.set("impact", impact);
         params.set("sort", sort);
         params.set("order", order);
 
@@ -959,7 +991,7 @@
                 <div class="detail-section">
                   <h4>Milestones Reached</h4>
                   <div style="display:flex;flex-wrap:wrap;gap:6px">
-                    ${b.milestones.map(m => `<span class="badge" style="background:#dcfce7;color:#166534;border:1px solid #86efac;margin:2px">${esc(m)}</span>`).join("")}
+                    ${b.milestones.map(m => `<span class="badge" style="background:#dcfce7;color:#166534;border:1px solid #86efac;margin:2px">${esc(typeof m === 'string' ? m : m.label)}${m.date ? ` (${esc(m.date)})` : ''}</span>`).join("")}
                   </div>
                 </div>
               ` : `
@@ -968,6 +1000,21 @@
                   <p style="font-size:0.85rem;color:#888;font-style:italic">No milestones recorded yet.</p>
                 </div>
               `}
+
+              ${(b.history || []).length > 0 ? `
+                <div class="detail-section">
+                  <h4>History Timeline</h4>
+                  <ul style="border-left:2px solid #2563eb;padding-left:16px;margin-left:4px">
+                    ${b.history.slice().sort((a, b) => b.date.localeCompare(a.date)).map(h => `
+                      <li style="margin-bottom:6px;position:relative">
+                        <span style="position:absolute;left:-21px;top:4px;width:8px;height:8px;background:#2563eb;border-radius:50;display:inline-block"></span>
+                        <strong>${esc(h.date)}</strong>${h.chamber ? ` <span class="badge" style="background:#f3f4f6;color:#555;font-size:0.7rem">${esc(h.chamber)}</span>` : ""}
+                        <div style="color:#555">${esc(h.action)}</div>
+                      </li>
+                    `).join("")}
+                  </ul>
+                </div>
+              ` : ""}
 
               ${(b.sponsors || []).length > 0 ? `
                 <div class="detail-section">
@@ -1002,6 +1049,16 @@
                   </ul>
                 </div>
               ` : ""}
+
+              <div class="detail-section">
+                <h4>Solar Relevance Analysis</h4>
+                <div id="solar-${b.bill_id}">
+                  ${(b.solar_keywords || []).length > 0 ?
+                    `<div style="display:flex;flex-wrap:wrap;gap:4px">${b.solar_keywords.map(k => `<span class="badge" style="background:#fef3c7;color:#92400e;border:1px solid #fcd34d;margin:2px">${esc(k)}</span>`).join("")}</div>` :
+                    `<button class="btn-expand" onclick="analyzeBill(${b.bill_id})">Analyze bill text for solar keywords</button>`
+                  }
+                </div>
+              </div>
 
               <div class="detail-section">
                 <h4>Related Bills</h4>
