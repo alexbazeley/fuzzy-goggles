@@ -79,6 +79,7 @@ class TrackedBill:
     subjects: list[str] = field(default_factory=list)
     committee: str = ""
     committee_id: int = 0
+    solar_summary: str = ""
 
     @property
     def status_text(self) -> str:
@@ -139,6 +140,7 @@ def load_tracked_bills(path: Path) -> list[TrackedBill]:
             subjects=b.get("subjects", []),
             committee=b.get("committee", ""),
             committee_id=b.get("committee_id", 0),
+            solar_summary=b.get("solar_summary", ""),
         ))
     return bills
 
@@ -151,16 +153,49 @@ def save_tracked_bills(bills: list[TrackedBill], path: Path) -> None:
 
 
 def _extract_sponsors(bill_data: dict) -> list[dict]:
-    """Extract sponsor list from API bill data."""
+    """Extract sponsor list from API bill data.
+
+    LegiScan may return party as 'party' or 'party_id', and sponsor type
+    as 'sponsor_type', 'sponsor_type_id', or numeric values.
+    """
     sponsors_raw = bill_data.get("sponsors", [])
+    if isinstance(sponsors_raw, dict):
+        # Some API responses wrap sponsors in a dict with numeric keys
+        sponsors_raw = list(sponsors_raw.values())
     sponsors = []
     for s in sponsors_raw:
+        if not isinstance(s, dict):
+            continue
+        # Build full name from parts if 'name' is missing
+        name = s.get("name", "")
+        if not name:
+            parts = [s.get("first_name", ""), s.get("middle_name", ""), s.get("last_name", "")]
+            suffix = s.get("suffix", "")
+            name = " ".join(p for p in parts if p)
+            if suffix:
+                name = f"{name} {suffix}"
+
+        # Party: try 'party', then 'party_id' (LegiScan uses both)
+        party = s.get("party", "") or s.get("party_id", "")
+
+        # Role: try 'role', then map 'role_id' (1=Sen, 2=Rep)
+        role = s.get("role", "")
+        if not role:
+            role_id = s.get("role_id", 0)
+            role = {1: "Sen", 2: "Rep"}.get(role_id, "")
+
+        # Sponsor type: try 'sponsor_type', then map 'sponsor_type_id' (1=Primary, 2=Co-Sponsor)
+        sponsor_type = s.get("sponsor_type", "")
+        if not sponsor_type:
+            st_id = s.get("sponsor_type_id", 0)
+            sponsor_type = {1: "Primary", 2: "Co-Sponsor"}.get(st_id, "")
+
         sponsors.append({
             "people_id": s.get("people_id", 0),
-            "name": s.get("name", ""),
-            "party": s.get("party", ""),
-            "role": s.get("role", ""),
-            "sponsor_type": s.get("sponsor_type", ""),
+            "name": name,
+            "party": str(party),
+            "role": role,
+            "sponsor_type": sponsor_type,
         })
     return sponsors
 
