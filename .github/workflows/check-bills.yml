@@ -1,0 +1,43 @@
+name: Check Bill Status
+
+on:
+  schedule:
+    # Runs at 8:00 AM and 6:00 PM UTC daily
+    - cron: '0 8,18 * * *'
+  workflow_dispatch: # Allow manual trigger from GitHub UI
+
+jobs:
+  check-bills:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Run bill checker
+        env:
+          LEGISCAN_API_KEY: ${{ secrets.LEGISCAN_API_KEY }}
+          SMTP_HOST: ${{ secrets.SMTP_HOST }}
+          SMTP_PORT: ${{ secrets.SMTP_PORT }}
+          SMTP_USER: ${{ secrets.SMTP_USER }}
+          SMTP_PASSWORD: ${{ secrets.SMTP_PASSWORD }}
+          EMAIL_FROM: ${{ secrets.EMAIL_FROM }}
+          EMAIL_TO: ${{ secrets.EMAIL_TO }}
+          PYTHONPATH: src
+        run: python -m legislator --check
+
+      - name: Commit updated tracking data
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add data/tracked_bills.json
+          git diff --cached --quiet || git commit -m "Update tracked bill hashes [skip ci]"
+          git push

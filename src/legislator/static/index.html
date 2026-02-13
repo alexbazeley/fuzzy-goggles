@@ -1,0 +1,368 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Legislation Tracker</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      max-width: 960px;
+      margin: 0 auto;
+      padding: 24px;
+      background: #f8f9fa;
+      color: #1a1a1a;
+    }
+    h1 { margin-bottom: 24px; font-size: 1.5rem; }
+    h2 { margin-bottom: 12px; font-size: 1.1rem; color: #444; }
+
+    /* Search */
+    .search-bar {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 16px;
+      flex-wrap: wrap;
+    }
+    .search-bar select, .search-bar input, .search-bar button {
+      padding: 8px 12px;
+      border: 1px solid #ccc;
+      border-radius: 6px;
+      font-size: 0.9rem;
+    }
+    .search-bar input { flex: 1; min-width: 200px; }
+    .search-bar button {
+      background: #2563eb;
+      color: white;
+      border: none;
+      cursor: pointer;
+      font-weight: 500;
+    }
+    .search-bar button:hover { background: #1d4ed8; }
+
+    /* Cards */
+    .section { margin-bottom: 32px; }
+    .card {
+      background: white;
+      border: 1px solid #e0e0e0;
+      border-radius: 8px;
+      padding: 14px 16px;
+      margin-bottom: 8px;
+    }
+    .card-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: 12px;
+    }
+    .card-title {
+      font-weight: 600;
+      font-size: 0.95rem;
+    }
+    .card-meta {
+      font-size: 0.82rem;
+      color: #666;
+      margin-top: 4px;
+    }
+    .card-meta a { color: #2563eb; text-decoration: none; }
+    .card-meta a:hover { text-decoration: underline; }
+    .badge {
+      display: inline-block;
+      padding: 2px 8px;
+      border-radius: 12px;
+      font-size: 0.75rem;
+      font-weight: 600;
+      white-space: nowrap;
+    }
+    .badge-status {
+      background: #dbeafe;
+      color: #1e40af;
+    }
+    .badge-state {
+      background: #f0fdf4;
+      color: #166534;
+    }
+
+    /* Buttons */
+    .btn-sm {
+      padding: 4px 12px;
+      border: 1px solid #ccc;
+      border-radius: 6px;
+      font-size: 0.8rem;
+      cursor: pointer;
+      background: white;
+    }
+    .btn-track {
+      background: #16a34a;
+      color: white;
+      border: none;
+    }
+    .btn-track:hover { background: #15803d; }
+    .btn-remove {
+      color: #dc2626;
+      border-color: #dc2626;
+    }
+    .btn-remove:hover { background: #fef2f2; }
+    .btn-check {
+      background: #7c3aed;
+      color: white;
+      border: none;
+      padding: 8px 16px;
+      border-radius: 6px;
+      font-size: 0.9rem;
+      cursor: pointer;
+      font-weight: 500;
+    }
+    .btn-check:hover { background: #6d28d9; }
+
+    /* Misc */
+    .empty { color: #888; font-style: italic; font-size: 0.9rem; }
+    .toolbar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 12px;
+    }
+    .spinner { display: none; color: #666; font-size: 0.85rem; }
+    .spinner.active { display: inline; }
+    .search-summary { font-size: 0.85rem; color: #666; margin-bottom: 8px; }
+    .notification {
+      position: fixed;
+      top: 16px;
+      right: 16px;
+      padding: 12px 20px;
+      border-radius: 8px;
+      font-size: 0.9rem;
+      color: white;
+      z-index: 100;
+      opacity: 0;
+      transition: opacity 0.3s;
+    }
+    .notification.show { opacity: 1; }
+    .notification.success { background: #16a34a; }
+    .notification.error { background: #dc2626; }
+    .notification.info { background: #2563eb; }
+  </style>
+</head>
+<body>
+  <h1>Legislation Tracker</h1>
+
+  <!-- Search Section -->
+  <div class="section">
+    <h2>Search Bills</h2>
+    <div class="search-bar">
+      <select id="stateSelect">
+        <option value="ALL">All States</option>
+      </select>
+      <input type="text" id="queryInput" placeholder="Search terms (e.g., artificial intelligence)" />
+      <button onclick="searchBills()">Search</button>
+      <span class="spinner" id="searchSpinner">Searching...</span>
+    </div>
+    <div id="searchSummary" class="search-summary"></div>
+    <div id="searchResults"></div>
+  </div>
+
+  <!-- Tracked Bills Section -->
+  <div class="section">
+    <div class="toolbar">
+      <h2>Tracked Bills</h2>
+      <button class="btn-check" onclick="triggerCheck()">Check Now</button>
+    </div>
+    <span class="spinner" id="checkSpinner">Checking bills...</span>
+    <div id="trackedBills"></div>
+  </div>
+
+  <div id="notification" class="notification"></div>
+
+  <script>
+    const STATES = [
+      "AL","AK","AZ","AR","CA","CO","CT","DE","FL","GA",
+      "HI","ID","IL","IN","IA","KS","KY","LA","ME","MD",
+      "MA","MI","MN","MS","MO","MT","NE","NV","NH","NJ",
+      "NM","NY","NC","ND","OH","OK","OR","PA","RI","SC",
+      "SD","TN","TX","UT","VT","VA","WA","WV","WI","WY","DC"
+    ];
+
+    const STATUS_CODES = {
+      1: "Introduced", 2: "Engrossed", 3: "Enrolled",
+      4: "Passed", 5: "Vetoed", 6: "Failed"
+    };
+
+    // Populate state dropdown
+    const select = document.getElementById("stateSelect");
+    STATES.forEach(s => {
+      const opt = document.createElement("option");
+      opt.value = s;
+      opt.textContent = s;
+      select.appendChild(opt);
+    });
+
+    // Allow Enter key to search
+    document.getElementById("queryInput").addEventListener("keydown", e => {
+      if (e.key === "Enter") searchBills();
+    });
+
+    function notify(msg, type = "info") {
+      const el = document.getElementById("notification");
+      el.textContent = msg;
+      el.className = `notification ${type} show`;
+      setTimeout(() => el.classList.remove("show"), 3000);
+    }
+
+    // --- Search ---
+    async function searchBills() {
+      const state = document.getElementById("stateSelect").value;
+      const query = document.getElementById("queryInput").value.trim();
+      if (!query) return;
+
+      const spinner = document.getElementById("searchSpinner");
+      spinner.classList.add("active");
+      document.getElementById("searchResults").innerHTML = "";
+      document.getElementById("searchSummary").textContent = "";
+
+      try {
+        const resp = await fetch(`/api/search?state=${encodeURIComponent(state)}&q=${encodeURIComponent(query)}`);
+        const data = await resp.json();
+        if (!resp.ok) throw new Error(data.error || "Search failed");
+
+        const summary = data.summary || {};
+        const results = data.results || [];
+
+        if (results.length === 0) {
+          document.getElementById("searchSummary").textContent = "No results found.";
+          return;
+        }
+
+        document.getElementById("searchSummary").textContent =
+          `Found ${summary.count || results.length} result(s) — page ${summary.page || 1} of ${summary.page_total || 1}`;
+
+        const container = document.getElementById("searchResults");
+        results.forEach(r => {
+          const card = document.createElement("div");
+          card.className = "card";
+          card.innerHTML = `
+            <div class="card-header">
+              <div>
+                <div class="card-title">
+                  <span class="badge badge-state">${esc(r.state)}</span>
+                  ${esc(r.bill_number)}: ${esc(r.title || "")}
+                </div>
+                <div class="card-meta">
+                  Last action: ${esc(r.last_action_date || "N/A")} &mdash; ${esc((r.last_action || "").substring(0, 120))}
+                </div>
+              </div>
+              <button class="btn-sm btn-track" onclick="trackBill(${r.bill_id})">Track</button>
+            </div>
+          `;
+          container.appendChild(card);
+        });
+      } catch (e) {
+        notify(e.message, "error");
+      } finally {
+        spinner.classList.remove("active");
+      }
+    }
+
+    // --- Track a bill ---
+    async function trackBill(billId) {
+      try {
+        const resp = await fetch("/api/bills", {
+          method: "POST",
+          headers: {"Content-Type": "application/json"},
+          body: JSON.stringify({bill_id: billId}),
+        });
+        const data = await resp.json();
+        if (!resp.ok) throw new Error(data.error || "Failed to track bill");
+        notify(`Now tracking ${data.state} ${data.bill_number}`, "success");
+        loadBills();
+      } catch (e) {
+        notify(e.message, "error");
+      }
+    }
+
+    // --- Remove a bill ---
+    async function removeBill(billId) {
+      try {
+        const resp = await fetch(`/api/bills/${billId}`, {method: "DELETE"});
+        if (!resp.ok) throw new Error("Failed to remove bill");
+        notify("Bill removed", "info");
+        loadBills();
+      } catch (e) {
+        notify(e.message, "error");
+      }
+    }
+
+    // --- Load tracked bills ---
+    async function loadBills() {
+      try {
+        const resp = await fetch("/api/bills");
+        const bills = await resp.json();
+        const container = document.getElementById("trackedBills");
+
+        if (bills.length === 0) {
+          container.innerHTML = '<p class="empty">No bills tracked yet. Use the search above to find and track bills.</p>';
+          return;
+        }
+
+        container.innerHTML = "";
+        bills.forEach(b => {
+          const card = document.createElement("div");
+          card.className = "card";
+          card.innerHTML = `
+            <div class="card-header">
+              <div>
+                <div class="card-title">
+                  <span class="badge badge-state">${esc(b.state)}</span>
+                  <span class="badge badge-status">${esc(b.status_text || STATUS_CODES[b.status] || "Unknown")}</span>
+                  ${esc(b.bill_number)}: ${esc(b.title)}
+                </div>
+                <div class="card-meta">
+                  Last action: ${esc(b.last_history_date || "N/A")} &mdash; ${esc((b.last_history_action || "").substring(0, 120))}
+                  <br/>
+                  ${b.url ? `<a href="${esc(b.url)}" target="_blank">LegiScan</a>` : ""}
+                  ${b.state_link ? ` | <a href="${esc(b.state_link)}" target="_blank">Official</a>` : ""}
+                </div>
+              </div>
+              <button class="btn-sm btn-remove" onclick="removeBill(${b.bill_id})">Remove</button>
+            </div>
+          `;
+          container.appendChild(card);
+        });
+      } catch (e) {
+        notify("Failed to load bills", "error");
+      }
+    }
+
+    // --- Check now ---
+    async function triggerCheck() {
+      const spinner = document.getElementById("checkSpinner");
+      spinner.classList.add("active");
+      try {
+        const resp = await fetch("/api/check", {method: "POST"});
+        const data = await resp.json();
+        if (data.changes_found > 0) {
+          notify(`${data.changes_found} bill(s) changed!${data.email_sent ? " Email sent." : ""}`, "success");
+        } else {
+          notify(`Checked ${data.bills_checked} bill(s) — no changes.`, "info");
+        }
+        loadBills();
+      } catch (e) {
+        notify("Check failed: " + e.message, "error");
+      } finally {
+        spinner.classList.remove("active");
+      }
+    }
+
+    // Escape HTML
+    function esc(s) {
+      if (!s) return "";
+      const el = document.createElement("span");
+      el.textContent = String(s);
+      return el.innerHTML;
+    }
+
+    // Load on startup
+    loadBills();
+  </script>
+</body>
+</html>
