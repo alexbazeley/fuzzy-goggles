@@ -8,7 +8,6 @@ Uses the [LegiScan API](https://legiscan.com/legiscan) (free tier: 30K queries/m
 
 - **Priority levels** — Mark bills as high, medium, or low priority; high-priority changes trigger urgent email alerts
 - **Sponsor tracking** — See all sponsors/co-sponsors and get alerted when they change
-- **AI solar developer summaries** — Claude-powered analysis of how each bill impacts solar developers (permits, incentives, net metering, tax credits, etc.)
 - **Milestone tracking** — See which legislative milestones each bill has reached (Introduced, Committee Referral, Engrossed, Enrolled, Passed, etc.)
 - **Hearing dates** — View upcoming committee hearings and calendar events
 - **Related bills** — Find similar legislation across all 50 states
@@ -32,17 +31,12 @@ Register for free at [legiscan.com](https://legiscan.com/legiscan).
 pip install -r requirements.txt
 ```
 
-### 3. (Optional) Get an Anthropic API key for AI summaries
-
-To enable AI-powered solar developer impact summaries, get an API key from [console.anthropic.com](https://console.anthropic.com/). This is optional — the tracker works without it, but you won't get AI summaries.
-
-### 4. Run the local UI
+### 3. Run the local UI
 
 **Linux / macOS (Bash):**
 
 ```bash
 export LEGISCAN_API_KEY=your_key_here
-export ANTHROPIC_API_KEY=your_key_here  # optional, for AI summaries
 PYTHONPATH=src python -m legislator
 ```
 
@@ -50,7 +44,6 @@ PYTHONPATH=src python -m legislator
 
 ```powershell
 $env:LEGISCAN_API_KEY = "your_key_here"
-$env:ANTHROPIC_API_KEY = "your_key_here"  # optional, for AI summaries
 $env:PYTHONPATH = "src"
 python -m legislator
 ```
@@ -63,14 +56,13 @@ This opens a browser to `http://127.0.0.1:5000` with three tabs:
 
 Tracked bills are saved to `data/tracked_bills.json`.
 
-### 5. Set up automated checks (GitHub Actions)
+### 4. Set up automated checks (GitHub Actions)
 
 Add these secrets to your GitHub repository (Settings > Secrets and variables > Actions):
 
 | Secret | Description |
 |--------|-------------|
 | `LEGISCAN_API_KEY` | Your LegiScan API key |
-| `ANTHROPIC_API_KEY` | (Optional) Anthropic API key for AI solar developer summaries |
 | `SMTP_HOST` | SMTP server (default: `smtp.gmail.com`) |
 | `SMTP_PORT` | SMTP port (default: `587`) |
 | `SMTP_USER` | SMTP login username |
@@ -80,7 +72,7 @@ Add these secrets to your GitHub repository (Settings > Secrets and variables > 
 
 The workflow runs twice daily (8 AM and 6 PM UTC) and can be triggered manually from the Actions tab.
 
-### 6. Commit your tracked bills
+### 5. Commit your tracked bills
 
 After adding bills via the UI, commit and push `data/tracked_bills.json` so GitHub Actions can check them:
 
@@ -108,7 +100,6 @@ git push
 | `DELETE` | `/api/bills/<id>` | Remove a tracked bill |
 | `PATCH` | `/api/bills/<id>/priority` | Set priority (`{priority: "high"\|"medium"\|"low"}`) |
 | `POST` | `/api/bills/<id>/refresh` | Force re-fetch bill data from LegiScan (updates sponsors, calendar, etc.) |
-| `POST` | `/api/bills/<id>/summarize` | Generate/regenerate AI solar developer summary |
 | `GET` | `/api/bills/<id>/related` | Find related bills across all states |
 | `GET` | `/api/search` | Search bills (`?state=`, `?q=`, `?page=`) |
 | `POST` | `/api/check` | Trigger a manual check for all tracked bills |
@@ -146,7 +137,6 @@ src/legislator/
   app.py         - Flask server and API routes
   api.py         - LegiScan API client
   checker.py     - Change detection logic and data models
-  summarizer.py  - Claude-powered bill summarization for solar developers
   emailer.py     - Email alert formatting/sending
   scoring.py     - Impact scoring and session calendar awareness
   related.py     - Related bills detection

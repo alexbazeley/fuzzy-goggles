@@ -79,7 +79,6 @@ class TrackedBill:
     subjects: list[str] = field(default_factory=list)
     committee: str = ""
     committee_id: int = 0
-    solar_summary: str = ""
 
     @property
     def status_text(self) -> str:
@@ -140,7 +139,6 @@ def load_tracked_bills(path: Path) -> list[TrackedBill]:
             subjects=b.get("subjects", []),
             committee=b.get("committee", ""),
             committee_id=b.get("committee_id", 0),
-            solar_summary=b.get("solar_summary", ""),
         ))
     return bills
 
@@ -183,17 +181,23 @@ def _extract_sponsors(bill_data: dict) -> list[dict]:
         # Party: try 'party', then 'party_id' (LegiScan uses both)
         party = s.get("party", "") or s.get("party_id", "")
 
-        # Role: try 'role', then map 'role_id' (1=Sen, 2=Rep)
+        # Role: try 'role', then map 'role_id' (1=Rep, 2=Sen, 3=Joint Conference)
         role = s.get("role", "")
         if not role:
             role_id = s.get("role_id", 0)
-            role = {1: "Sen", 2: "Rep"}.get(role_id, "")
+            role = {1: "Rep", 2: "Sen", 3: "Joint Conference"}.get(role_id, "")
 
-        # Sponsor type: try 'sponsor_type', then map 'sponsor_type_id' (1=Primary, 2=Co-Sponsor)
+        # Sponsor type: try 'sponsor_type', then map 'sponsor_type_id'
+        # (0=Sponsor, 1=Primary Sponsor, 2=Co-Sponsor, 3=Joint Sponsor)
         sponsor_type = s.get("sponsor_type", "")
         if not sponsor_type:
             st_id = s.get("sponsor_type_id", 0)
-            sponsor_type = {1: "Primary", 2: "Co-Sponsor"}.get(st_id, "")
+            sponsor_type = {
+                0: "Sponsor",
+                1: "Primary Sponsor",
+                2: "Co-Sponsor",
+                3: "Joint Sponsor",
+            }.get(st_id, "Sponsor")
 
         sponsors.append({
             "people_id": s.get("people_id", 0),

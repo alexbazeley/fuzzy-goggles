@@ -851,22 +851,6 @@
       if (el) el.classList.toggle("open");
     }
 
-    // --- Generate solar summary ---
-    async function generateSummary(billId) {
-      const statusEl = document.getElementById(`summary-status-${billId}`);
-      if (statusEl) statusEl.textContent = "Generating summary...";
-      try {
-        const resp = await fetch(`/api/bills/${billId}/summarize`, {method: "POST"});
-        const data = await resp.json();
-        if (!resp.ok) throw new Error(data.error || "Failed to generate summary");
-        notify("Solar summary generated", "success");
-        loadBills();  // Reload to show the new summary
-      } catch (e) {
-        if (statusEl) statusEl.textContent = e.message;
-        notify(e.message, "error");
-      }
-    }
-
     // --- Load related bills ---
     async function loadRelated(billId) {
       const container = document.getElementById(`related-${billId}`);
@@ -927,7 +911,7 @@
 
           // Sponsors summary
           const sponsorCount = (b.sponsors || []).length;
-          const primarySponsor = (b.sponsors || []).find(s => s.sponsor_type === "Primary" || s.sponsor_type === 1);
+          const primarySponsor = (b.sponsors || []).find(s => s.sponsor_type === "Primary Sponsor" || s.sponsor_type === "Primary" || s.sponsor_type === 1);
           const sponsorText = primarySponsor ? `${primarySponsor.name}${sponsorCount > 1 ? ` +${sponsorCount - 1} more` : ""}` : `${sponsorCount} sponsor(s)`;
 
           // Calendar
@@ -969,19 +953,6 @@
             </div>
 
             <div class="card-details" id="details-${b.bill_id}">
-              ${b.solar_summary ? `
-                <div class="detail-section" style="background:#fffbeb;border:1px solid #fcd34d;border-radius:6px;padding:10px 14px;margin-bottom:10px">
-                  <h4 style="color:#92400e">Solar Developer Impact</h4>
-                  <p style="font-size:0.85rem;color:#78350f;line-height:1.5">${esc(b.solar_summary)}</p>
-                </div>
-              ` : `
-                <div class="detail-section">
-                  <h4>Solar Developer Impact</h4>
-                  <button class="btn-expand" onclick="generateSummary(${b.bill_id})">Generate AI Summary</button>
-                  <span id="summary-status-${b.bill_id}" style="font-size:0.82rem;color:#888;margin-left:8px"></span>
-                </div>
-              `}
-
               ${b.description ? `<div class="detail-section"><h4>Description</h4><p style="font-size:0.85rem;color:#555">${esc(b.description)}</p></div>` : ""}
 
               ${(b.milestones || []).length > 0 ? `
