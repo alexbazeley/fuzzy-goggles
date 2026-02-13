@@ -1,8 +1,21 @@
 # Legislation Tracker
 
-Track state-level bills and get email alerts when their status changes.
+Track state-level bills with priority levels, sponsor monitoring, hearing dates, impact scoring, and email alerts when changes occur.
 
 Uses the [LegiScan API](https://legiscan.com/legiscan) (free tier: 30K queries/month) for bill data and GitHub Actions for automated daily checks.
+
+## Features
+
+- **Priority levels** — Mark bills as high, medium, or low priority; high-priority changes trigger urgent email alerts
+- **Sponsor tracking** — See all sponsors/co-sponsors and get alerted when they change
+- **Hearing dates** — View upcoming committee hearings and calendar events
+- **Related bills** — Find similar legislation across all 50 states
+- **Dashboard view** — At-a-glance stats, status/state breakdowns, session warnings, and upcoming hearings
+- **Filtering & sorting** — Filter by state, status, or priority; sort by date, priority, state, status, or title
+- **Impact scoring** — 0–100 likelihood score based on status progression, sponsor count, bipartisan support, milestones, and recent activity
+- **Session calendar awareness** — Warns when legislative sessions are ending and bills haven't advanced
+- **Visual progress timeline** — See exactly where each bill sits in the legislative process
+- **Email alerts** — Get notified of status changes, new sponsors, hearing dates, and milestone events
 
 ## Setup
 
@@ -18,16 +31,26 @@ pip install -r requirements.txt
 
 ### 3. Run the local UI
 
+**Linux / macOS (Bash):**
+
 ```bash
 export LEGISCAN_API_KEY=your_key_here
 PYTHONPATH=src python -m legislator
 ```
 
-This opens a browser to `http://127.0.0.1:5000` where you can:
-- **Search** for bills by state and keywords
-- **Track** bills you're interested in
-- **Remove** bills you no longer want to follow
-- **Check Now** to manually trigger a status check
+**Windows (PowerShell):**
+
+```powershell
+$env:LEGISCAN_API_KEY = "your_key_here"
+$env:PYTHONPATH = "src"
+python -m legislator
+```
+
+This opens a browser to `http://127.0.0.1:5000` with three tabs:
+
+- **Dashboard** — Overview stats, status/state charts, session warnings, and upcoming hearings
+- **Tracked Bills** — Your bills with filtering, sorting, priority controls, progress timelines, and expandable details (sponsors, hearings, subjects, impact score, related bills)
+- **Search** — Find bills by state and keywords, set priority on track
 
 Tracked bills are saved to `data/tracked_bills.json`.
 
@@ -59,11 +82,25 @@ git push
 
 ## How it works
 
-1. You search for and track bills through the local web UI
+1. You search for and track bills through the local web UI, setting priority levels as needed
 2. GitHub Actions checks each tracked bill twice daily via the LegiScan API
 3. Each bill has a `change_hash` — if it changes, the tool fetches updated details
-4. New progress events (committee referrals, votes, passage, etc.) and status changes trigger an email alert
-5. Updated hashes are committed back to the repo automatically
+4. Changes are detected across multiple dimensions: status, progress milestones, sponsors added/removed, and new hearing dates
+5. Email alerts are sent with high-priority bills first; high-priority changes get an "URGENT" subject prefix
+6. Updated data (including sponsors, calendar events, and session info) is committed back to the repo automatically
+
+## API endpoints
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| `GET` | `/api/bills` | List tracked bills (supports `?state=`, `?status=`, `?priority=`, `?sort=`, `?order=`) |
+| `POST` | `/api/bills` | Track a new bill (`{bill_id, priority?}`) |
+| `DELETE` | `/api/bills/<id>` | Remove a tracked bill |
+| `PATCH` | `/api/bills/<id>/priority` | Set priority (`{priority: "high"\|"medium"\|"low"}`) |
+| `GET` | `/api/bills/<id>/related` | Find related bills across all states |
+| `GET` | `/api/search` | Search bills (`?state=`, `?q=`, `?page=`) |
+| `POST` | `/api/check` | Trigger a manual check for all tracked bills |
+| `GET` | `/api/dashboard` | Dashboard stats, session warnings, upcoming hearings |
 
 ## Bill status codes
 
@@ -76,16 +113,32 @@ git push
 | Vetoed | Vetoed by governor |
 | Failed | Did not pass |
 
+## Impact scoring
+
+Each bill gets a 0–100 score estimating its likelihood of passing:
+
+| Factor | Points |
+|--------|--------|
+| Status progression (Introduced → Passed) | 0–40 |
+| Sponsor count | 0–20 |
+| Bipartisan support | 0–15 |
+| Progress milestones reached | 0–15 |
+| Recent activity (last 7–30 days) | 0–10 |
+
+Bills that are Vetoed or Failed are scored as "Dead" (0).
+
 ## Project structure
 
 ```
 src/legislator/
   app.py         - Flask server and API routes
   api.py         - LegiScan API client
-  checker.py     - Change detection logic
+  checker.py     - Change detection logic and data models
   emailer.py     - Email alert formatting/sending
+  scoring.py     - Impact scoring and session calendar awareness
+  related.py     - Related bills detection
   config.py      - Environment variable configuration
   __main__.py    - CLI entry point
   static/
-    index.html   - Web UI
+    index.html   - Web UI (dashboard, bill list, search)
 ```
