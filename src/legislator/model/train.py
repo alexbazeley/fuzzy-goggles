@@ -1,86 +1,148 @@
 """Training pipeline for bill passage prediction model.
 
-Fetches historical bill data from Open States, extracts features,
-trains a logistic regression model, and saves weights to JSON.
+Loads historical bill data from local Open States bulk downloads,
+extracts features, trains a logistic regression model, and saves
+weights to JSON.
 
 Usage:
-    OPENSTATES_API_KEY=your_key PYTHONPATH=src python -m legislator.model.train
+    PYTHONPATH=src python -m legislator.model.train
 
-No external ML dependencies — logistic regression is implemented in pure Python
-using gradient descent so the model can ship without numpy/sklearn.
+Data setup:
+    1. Create an account at https://open.pluralpolicy.com/
+    2. Download session JSON files from https://open.pluralpolicy.com/data/session-json/
+       (e.g. Texas 88th Legislature, California 2023-2024, etc.)
+    3. Place the downloaded JSON files (or extracted folders) in:
+           src/legislator/model/data/
+    4. Run this script
+
+The script accepts any of these file layouts in the data/ directory:
+    - Individual JSON files: *.json
+    - Zip archives: *.zip (will be extracted automatically)
+    - Directories containing bills as individual JSON files
+
+No external ML dependencies — logistic regression is implemented in
+pure Python using gradient descent.
 """
 
+import glob
 import json
 import math
 import os
 import sys
-import time
+import zipfile
 from datetime import date
 from pathlib import Path
 from typing import Optional
 
-from legislator.openstates import OpenStatesAPI
 from legislator.model.features import (
     FEATURE_NAMES, extract_from_openstates, label_from_openstates,
 )
 
-# States with good data quality and solar/energy policy activity
-TARGET_STATES = [
-    ("Texas", "88"),        # 2023 session
-    ("Texas", "87"),        # 2021 session
-    ("California", "20232024"),  # 2023-2024 session
-    ("California", "20212022"),  # 2021-2022 session
-    ("New York", "2023-2024"),   # 2023-2024 session
-    ("New York", "2021-2022"),   # 2021-2022 session
-    ("North Carolina", "2023"),  # 2023 session
-    ("Virginia", "2024"),        # 2024 session
-    ("Virginia", "2023"),        # 2023 session
-    ("Colorado", "2024"),        # 2024 session
-]
-
-# Where to save training data and model weights
+# Where to find training data and save model weights
 DATA_DIR = Path(__file__).parent / "data"
 WEIGHTS_PATH = Path(__file__).parent / "weights.json"
 
 
-def fetch_training_data(api: OpenStatesAPI) -> list[dict]:
-    """Fetch bills from target states/sessions via the Open States API.
+def _load_json_file(path: Path) -> list[dict]:
+    """Load bills from a single JSON file.
 
-    Saves raw data to disk as a cache so re-runs don't re-fetch.
+    Handles both formats:
+      - A list of bill dicts: [{"id": ..., "identifier": ...}, ...]
+      - A single bill dict: {"id": ..., "identifier": ...}
+      - An Open States bulk JSON with top-level keys
     """
-    DATA_DIR.mkdir(exist_ok=True)
-    cache_path = DATA_DIR / "training_bills.json"
+    with open(path) as f:
+        data = json.load(f)
 
-    if cache_path.exists():
-        print(f"Loading cached training data from {cache_path}")
-        with open(cache_path) as f:
-            return json.load(f)
+    if isinstance(data, list):
+        return data
+    if isinstance(data, dict):
+        # Could be a single bill or a wrapper object
+        if "identifier" in data:
+            return [data]
+        # Try common wrapper keys
+        for key in ("bills", "results", "data"):
+            if key in data and isinstance(data[key], list):
+                return data[key]
+        # If it has nested bill-like objects, try to extract them
+        bills = []
+        for val in data.values():
+            if isinstance(val, dict) and "identifier" in val:
+                bills.append(val)
+            elif isinstance(val, list):
+                for item in val:
+                    if isinstance(item, dict) and "identifier" in item:
+                        bills.append(item)
+        if bills:
+            return bills
+    return []
+
+
+def _extract_zip(zip_path: Path) -> list[dict]:
+    """Extract bills from a zip archive."""
+    bills = []
+    with zipfile.ZipFile(zip_path) as zf:
+        for name in zf.namelist():
+            if name.endswith(".json"):
+                with zf.open(name) as f:
+                    try:
+                        data = json.loads(f.read().decode())
+                        if isinstance(data, list):
+                            bills.extend(data)
+                        elif isinstance(data, dict) and "identifier" in data:
+                            bills.append(data)
+                        elif isinstance(data, dict):
+                            for key in ("bills", "results", "data"):
+                                if key in data and isinstance(data[key], list):
+                                    bills.extend(data[key])
+                                    break
+                    except (json.JSONDecodeError, UnicodeDecodeError):
+                        continue
+    return bills
+
+
+def load_training_data() -> list[dict]:
+    """Load bill data from local files in the data directory.
+
+    Looks for JSON files and zip archives in DATA_DIR.
+    """
+    if not DATA_DIR.exists():
+        DATA_DIR.mkdir(parents=True, exist_ok=True)
+        print(f"Created data directory: {DATA_DIR}")
+        print(f"Please add Open States bulk JSON files to this directory.")
+        print(f"Download from: https://open.pluralpolicy.com/data/session-json/")
+        return []
 
     all_bills = []
-    include = ["sponsorships", "actions"]
 
-    for jurisdiction, session in TARGET_STATES:
-        print(f"Fetching {jurisdiction} session {session}...")
-        try:
-            bills = api.fetch_all_bills(
-                jurisdiction, session, include=include,
-                max_pages=150,  # ~3000 bills max per session
-            )
-            print(f"  Got {len(bills)} bills")
-            all_bills.extend(bills)
-        except Exception as e:
-            print(f"  Error fetching {jurisdiction}/{session}: {e}")
-            continue
+    # Load JSON files
+    json_files = sorted(DATA_DIR.glob("*.json"))
+    for path in json_files:
+        print(f"Loading {path.name}...")
+        bills = _load_json_file(path)
+        print(f"  {len(bills)} bills")
+        all_bills.extend(bills)
 
-        # Rate limit courtesy
-        time.sleep(1)
+    # Load zip archives
+    zip_files = sorted(DATA_DIR.glob("*.zip"))
+    for path in zip_files:
+        print(f"Extracting {path.name}...")
+        bills = _extract_zip(path)
+        print(f"  {len(bills)} bills")
+        all_bills.extend(bills)
 
-    print(f"\nTotal bills fetched: {len(all_bills)}")
-
-    # Cache to disk
-    with open(cache_path, "w") as f:
-        json.dump(all_bills, f)
-    print(f"Cached to {cache_path}")
+    # Load from subdirectories (extracted bulk downloads)
+    for subdir in sorted(DATA_DIR.iterdir()):
+        if subdir.is_dir():
+            sub_jsons = sorted(subdir.glob("*.json"))
+            if sub_jsons:
+                print(f"Loading from {subdir.name}/...")
+                count = 0
+                for path in sub_jsons:
+                    bills = _load_json_file(path)
+                    count += len(bills)
+                    all_bills.extend(bills)
+                print(f"  {count} bills")
 
     return all_bills
 
@@ -265,7 +327,6 @@ def save_weights(w: list[float], b: float,
         "means": means,
         "stds": stds,
         "metrics": metrics,
-        "trained_on": TARGET_STATES,
         "trained_at": date.today().isoformat(),
     }
     with open(path, "w") as f:
@@ -274,24 +335,47 @@ def save_weights(w: list[float], b: float,
 
 
 def main():
-    api_key = os.environ.get("OPENSTATES_API_KEY")
-    if not api_key:
-        print("Error: OPENSTATES_API_KEY environment variable required")
+    # 1. Load local data
+    print("=" * 60)
+    print("Step 1: Loading training data from local files")
+    print("=" * 60)
+    print(f"Data directory: {DATA_DIR}\n")
+
+    bills = load_training_data()
+
+    if not bills:
+        print("\n" + "=" * 60)
+        print("No training data found!")
+        print("=" * 60)
+        print()
+        print("To train the model, download Open States bulk JSON files:")
+        print()
+        print("  1. Create a free account at https://open.pluralpolicy.com/")
+        print("  2. Go to https://open.pluralpolicy.com/data/session-json/")
+        print("  3. Download session files for several states, e.g.:")
+        print("     - Texas 88th Legislature (2023)")
+        print("     - California 2023-2024 Regular Session")
+        print("     - New York 2023 Regular Session")
+        print("     - Virginia 2024 Regular Session")
+        print("     - Colorado 2024 Regular Session")
+        print(f"  4. Place the .json or .zip files in:")
+        print(f"     {DATA_DIR}")
+        print(f"  5. Re-run: PYTHONPATH=src python -m legislator.model.train")
         sys.exit(1)
 
-    api = OpenStatesAPI(api_key)
-
-    # 1. Fetch historical data
-    print("=" * 60)
-    print("Step 1: Fetching historical bill data from Open States")
-    print("=" * 60)
-    bills = fetch_training_data(api)
+    print(f"\nTotal bills loaded: {len(bills)}")
 
     # 2. Extract features and labels
     print("\n" + "=" * 60)
     print("Step 2: Extracting features")
     print("=" * 60)
     X, y = prepare_dataset(bills)
+
+    if not y:
+        print("Error: Could not extract any labeled bills from the data.")
+        print("Make sure the JSON files contain bills with 'actions' data.")
+        sys.exit(1)
+
     n_pos = sum(y)
     n_neg = len(y) - n_pos
     print(f"Dataset: {len(y)} bills, {n_pos} passed ({n_pos/len(y)*100:.1f}%), "
@@ -299,6 +383,7 @@ def main():
 
     if len(y) < 100:
         print("Warning: very small dataset. Results may not be reliable.")
+        print("Consider downloading more state-session files.")
 
     # 3. Normalize features
     X_norm, means, stds = _normalize(X)
