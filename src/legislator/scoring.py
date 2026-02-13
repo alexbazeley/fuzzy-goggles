@@ -366,10 +366,104 @@ def _collect_risks(bill: TrackedBill, dims: dict) -> list[str]:
     return risks
 
 
-def compute_passage_likelihood(bill: TrackedBill) -> dict:
-    """Compute a 0-100 passage likelihood score using 7 analytical dimensions.
+def _compute_model_score(bill: TrackedBill) -> Optional[dict]:
+    """Try to compute passage score using the trained logistic regression model.
 
-    Returns dict with 'score', 'label', 'confidence', 'dimensions', 'factors', and 'risks'.
+    Returns a formatted result dict matching the heuristic output shape,
+    or None if the model is not available.
+    """
+    try:
+        from legislator.model.predict import model_available, predict_passage, get_top_factors
+    except ImportError:
+        return None
+
+    if not model_available():
+        return None
+
+    prediction = predict_passage(bill)
+    if prediction is None:
+        return None
+
+    # Build dimension-like breakdown from feature contributions
+    # Group features into logical dimensions for the UI
+    dimension_groups = {
+        "sponsors": {
+            "label": "Sponsor Strength",
+            "features": ["sponsor_count", "primary_sponsor_count", "cosponsor_count"],
+        },
+        "bipartisan": {
+            "label": "Bipartisan Support",
+            "features": ["is_bipartisan", "minority_party_sponsors"],
+        },
+        "procedural": {
+            "label": "Procedural Progress",
+            "features": ["committee_referral", "committee_passage", "passed_one_chamber"],
+        },
+        "momentum": {
+            "label": "Momentum",
+            "features": ["num_actions", "days_since_introduction", "action_density_30d"],
+        },
+        "timing": {
+            "label": "Session Timing",
+            "features": ["session_pct_at_intro"],
+        },
+        "structure": {
+            "label": "Bill Structure",
+            "features": ["senate_origin", "is_resolution", "num_subjects",
+                         "focused_scope", "amends_existing_law", "has_companion"],
+        },
+    }
+
+    contribs = prediction["feature_contributions"]
+    dimensions = {}
+    for dim_key, group in dimension_groups.items():
+        total_contrib = sum(contribs.get(f, 0) for f in group["features"])
+        # Normalize contribution to a 0-10 display scale
+        # Positive contributions help, negative hurt
+        display_score = max(0, min(10, round((total_contrib + 5) * 1)))
+        dimensions[dim_key] = {
+            "score": display_score,
+            "max": 10,
+            "detail": f"{group['label']}: {total_contrib:+.2f} contribution",
+        }
+
+    # Build factors from top contributors
+    top = get_top_factors(prediction, top_n=6)
+    factors = []
+    for f in top:
+        direction = "helps" if f["direction"] == "positive" else "hurts"
+        factors.append(f"{f['feature']}: {direction} ({f['contribution']:+.3f})")
+
+    confidence = _compute_confidence(bill)
+
+    # Use heuristic risk detection (still useful regardless of model)
+    heuristic_dims = {}  # minimal stub for _collect_risks
+    dim_bipartisan_check = _score_bipartisan(bill)
+    heuristic_dims["bipartisan"] = dim_bipartisan_check
+    risks = _collect_risks(bill, heuristic_dims)
+
+    return {
+        "score": prediction["score"],
+        "label": prediction["label"],
+        "confidence": confidence,
+        "dimensions": dimensions,
+        "factors": factors,
+        "risks": risks,
+        "model": "trained",
+        "model_metrics": prediction.get("model_metrics", {}),
+        "trained_at": prediction.get("trained_at", ""),
+    }
+
+
+def compute_passage_likelihood(bill: TrackedBill) -> dict:
+    """Compute a 0-100 passage likelihood score.
+
+    Uses a trained logistic regression model if available (trained on
+    historical Open States data). Falls back to heuristic scoring if
+    no trained model exists.
+
+    Returns dict with 'score', 'label', 'confidence', 'dimensions',
+    'factors', 'risks', and optionally 'model' indicating the source.
     """
     # Terminal states short-circuit
     if bill.status in (5, 6):
@@ -391,7 +485,12 @@ def compute_passage_likelihood(bill: TrackedBill) -> dict:
             "risks": [],
         }
 
-    # Score each dimension
+    # Try the trained model first
+    model_result = _compute_model_score(bill)
+    if model_result is not None:
+        return model_result
+
+    # Fallback: heuristic scoring
     dim_procedural = _score_procedural(bill)
     dim_sponsors = _score_sponsors(bill)
     dim_bipartisan = _score_bipartisan(bill)
@@ -454,6 +553,7 @@ def compute_passage_likelihood(bill: TrackedBill) -> dict:
         "dimensions": dimensions_dict,
         "factors": factors,
         "risks": risks,
+        "model": "heuristic",
     }
 
 

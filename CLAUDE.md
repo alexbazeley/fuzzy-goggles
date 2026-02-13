@@ -9,7 +9,8 @@ State-level legislation tracking system for **solar energy developers**. Built w
 - **Backend**: Flask REST API (`src/legislator/`)
 - **Frontend**: Single-page HTML/JS app (`src/legislator/static/index.html`)
 - **Data**: JSON file storage (`data/tracked_bills.json`)
-- **External APIs**: LegiScan (bill data)
+- **External APIs**: LegiScan (bill data), Open States (historical training data)
+- **ML Model**: Logistic regression for passage prediction (`src/legislator/model/`)
 - **CI/CD**: GitHub Actions for twice-daily bill checks
 
 ## Key Files
@@ -19,7 +20,11 @@ State-level legislation tracking system for **solar energy developers**. Built w
 | `src/legislator/app.py` | Flask routes and API endpoints |
 | `src/legislator/api.py` | LegiScan API client |
 | `src/legislator/checker.py` | Data models (`TrackedBill`, `BillChange`), change detection, sponsor/calendar extraction |
-| `src/legislator/scoring.py` | Impact scoring (0-100) and session calendar awareness |
+| `src/legislator/scoring.py` | Passage likelihood scoring (trained model or heuristic fallback) |
+| `src/legislator/openstates.py` | Open States API v3 client |
+| `src/legislator/model/features.py` | Feature extraction for training and prediction |
+| `src/legislator/model/train.py` | Training pipeline (fetch historical data, train, save weights) |
+| `src/legislator/model/predict.py` | Prediction using trained logistic regression weights |
 | `src/legislator/solar.py` | Solar energy keyword analysis for bill text |
 | `src/legislator/related.py` | Cross-state related bill discovery |
 | `src/legislator/emailer.py` | Email alert formatting and sending |
@@ -39,6 +44,7 @@ State-level legislation tracking system for **solar energy developers**. Built w
 | Variable | Required | Purpose |
 |----------|----------|---------|
 | `LEGISCAN_API_KEY` | Yes | LegiScan API access |
+| `OPENSTATES_API_KEY` | For model training | Open States API access |
 | `SMTP_HOST` | For email | SMTP server (default: smtp.gmail.com) |
 | `SMTP_PORT` | For email | SMTP port (default: 587) |
 | `SMTP_USER` | For email | SMTP login |
