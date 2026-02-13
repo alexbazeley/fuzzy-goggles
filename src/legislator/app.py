@@ -158,6 +158,61 @@ def create_app() -> Flask:
             d["session_status"] = session_info
         return jsonify(d), 201
 
+    @app.route("/api/bills/<int:bill_id>/refresh", methods=["POST"])
+    def refresh_bill(bill_id: int):
+        """Force re-fetch bill data from LegiScan, updating sponsors, calendar, etc."""
+        bills = load_tracked_bills(DATA_PATH)
+        bill = next((b for b in bills if b.bill_id == bill_id), None)
+        if not bill:
+            return jsonify({"error": "Bill not found"}), 404
+
+        try:
+            bill_data = api.get_bill(bill_id)
+        except Exception as e:
+            return jsonify({"error": str(e)}), 502
+
+        # Update all fields from fresh API data
+        bill.change_hash = bill_data["change_hash"]
+        bill.status = bill_data["status"]
+        bill.title = bill_data.get("title", bill.title)
+        bill.url = bill_data.get("url", bill.url)
+        bill.state_link = bill_data.get("state_link", bill.state_link)
+        bill.description = bill_data.get("description", bill.description)
+        bill.sponsors = _extract_sponsors(bill_data)
+        bill.calendar = _extract_calendar(bill_data)
+        bill.subjects = _extract_subjects(bill_data)
+
+        progress = bill_data.get("progress", [])
+        bill.progress_events = [p["event"] for p in progress]
+
+        history = bill_data.get("history", [])
+        if history:
+            latest = max(history, key=lambda h: h["date"])
+            bill.last_history_date = latest["date"]
+            bill.last_history_action = latest["action"]
+
+        session = bill_data.get("session", {})
+        if session:
+            bill.session_id = session.get("session_id", bill.session_id)
+            bill.session_name = session.get("session_name", bill.session_name)
+            bill.session_year_start = session.get("year_start", bill.session_year_start)
+            bill.session_year_end = session.get("year_end", bill.session_year_end)
+
+        committee = bill_data.get("committee", {})
+        if committee:
+            bill.committee = committee.get("name", bill.committee)
+            bill.committee_id = committee.get("committee_id", bill.committee_id)
+
+        save_tracked_bills(bills, DATA_PATH)
+
+        d = bill.to_dict()
+        d["impact"] = compute_impact_score(bill)
+        d["milestones"] = [
+            PROGRESS_EVENTS.get(code, f"Event {code}")
+            for code in bill.progress_events
+        ]
+        return jsonify(d)
+
     @app.route("/api/bills/<int:bill_id>", methods=["DELETE"])
     def remove_bill(bill_id: int):
         bills = load_tracked_bills(DATA_PATH)
