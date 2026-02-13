@@ -20,6 +20,7 @@ State-level legislation tracking system for **solar energy developers**. Built w
 | `src/legislator/api.py` | LegiScan API client |
 | `src/legislator/checker.py` | Data models (`TrackedBill`, `BillChange`), change detection, sponsor/calendar extraction |
 | `src/legislator/scoring.py` | Impact scoring (0-100) and session calendar awareness |
+| `src/legislator/solar.py` | Solar energy keyword analysis for bill text |
 | `src/legislator/related.py` | Cross-state related bill discovery |
 | `src/legislator/emailer.py` | Email alert formatting and sending |
 | `src/legislator/config.py` | Environment variable configuration |
@@ -65,6 +66,20 @@ The `_extract_sponsors()` function in `checker.py` handles all these variants. I
 - The `/api/bills/<id>/refresh` endpoint bypasses hash checking for force updates
 - `check_all_bills()` is called by GitHub Actions and the "Check Now" button
 
+### File Locking & Atomicity
+- `save_tracked_bills()` uses `fcntl.flock()` for exclusive file locking
+- Writes to a `.tmp` file first, then atomically renames for crash safety
+
+### API Retry Logic
+- `LegiScanAPI._call()` retries up to 3 times with exponential backoff (1s, 2s, 4s) on network errors
+- API-level errors (bad params, auth failures) are NOT retried
+
+### Solar Keyword Analysis
+- `solar.py` contains keyword dictionaries grouped by category (Net Metering, Incentives, Permitting, etc.)
+- Bill text is fetched via `getBillText` API → base64 decoded → keyword scanned
+- Results are cached in `solar_keywords` field on TrackedBill (persisted to JSON)
+- Only HTML/text documents can be analyzed; PDFs are not decoded
+
 ## Running Locally
 
 ```bash
@@ -89,6 +104,8 @@ No test suite currently exists. Test manually by:
 - Data models and extraction functions are in `checker.py`
 - The frontend is a single HTML file with embedded CSS and JS
 - Bill data enrichment (impact score, milestones, session status) happens at the API layer, not stored in JSON
+- Solar keyword analysis results and bill history are cached in JSON
+- TrackedBill has `progress_details` (with dates) in addition to `progress_events` (codes only)
 
 ## When Making Changes
 

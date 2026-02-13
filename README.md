@@ -12,11 +12,13 @@ Uses the [LegiScan API](https://legiscan.com/legiscan) (free tier: 30K queries/m
 - **Hearing dates** — View upcoming committee hearings and calendar events
 - **Related bills** — Find similar legislation across all 50 states
 - **Dashboard view** — At-a-glance stats, status/state breakdowns, session warnings, and upcoming hearings
-- **Filtering & sorting** — Filter by state, status, or priority; sort by date, priority, state, status, or title
+- **Filtering & sorting** — Filter by state, status, priority, or impact level; sort by date, priority, state, status, or title
 - **Impact scoring** — 0–100 likelihood score based on status progression, sponsor count, bipartisan support, milestones, and recent activity
 - **Session calendar awareness** — Warns when legislative sessions are ending and bills haven't advanced
 - **Visual progress timeline** — See exactly where each bill sits in the legislative process
 - **Email alerts** — Get notified of status changes, new sponsors, hearing dates, and milestone events
+- **Solar keyword analysis** — Scan bill text for solar energy terms (net metering, tax credits, permitting, etc.)
+- **Bill history timeline** — View the full legislative history of each bill in the details panel
 - **Bill refresh** — Force re-fetch bill data from LegiScan to update sponsors, calendar, and other fields
 
 ## Setup
@@ -95,11 +97,12 @@ git push
 
 | Method | Endpoint | Description |
 |--------|----------|-------------|
-| `GET` | `/api/bills` | List tracked bills (supports `?state=`, `?status=`, `?priority=`, `?sort=`, `?order=`) |
+| `GET` | `/api/bills` | List tracked bills (supports `?state=`, `?status=`, `?priority=`, `?impact=`, `?sort=`, `?order=`) |
 | `POST` | `/api/bills` | Track a new bill (`{bill_id, priority?}`) |
 | `DELETE` | `/api/bills/<id>` | Remove a tracked bill |
 | `PATCH` | `/api/bills/<id>/priority` | Set priority (`{priority: "high"\|"medium"\|"low"}`) |
 | `POST` | `/api/bills/<id>/refresh` | Force re-fetch bill data from LegiScan (updates sponsors, calendar, etc.) |
+| `POST` | `/api/bills/<id>/analyze` | Fetch bill text and scan for solar energy keywords (cached) |
 | `GET` | `/api/bills/<id>/related` | Find related bills across all states |
 | `GET` | `/api/search` | Search bills (`?state=`, `?q=`, `?page=`) |
 | `POST` | `/api/check` | Trigger a manual check for all tracked bills |
@@ -139,6 +142,7 @@ src/legislator/
   checker.py     - Change detection logic and data models
   emailer.py     - Email alert formatting/sending
   scoring.py     - Impact scoring and session calendar awareness
+  solar.py       - Solar energy keyword analysis for bill text
   related.py     - Related bills detection
   config.py      - Environment variable configuration
   __main__.py    - CLI entry point

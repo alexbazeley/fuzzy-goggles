@@ -1,5 +1,6 @@
 """Change detection logic and data models for tracked bills."""
 
+import fcntl
 import json
 from dataclasses import dataclass, field, asdict
 from pathlib import Path
@@ -67,6 +68,7 @@ class TrackedBill:
     last_history_date: str
     last_history_action: str
     progress_events: list[int] = field(default_factory=list)
+    progress_details: list[dict] = field(default_factory=list)  # [{event, date}]
     # New fields
     priority: str = "medium"  # "high", "medium", "low"
     sponsors: list[dict] = field(default_factory=list)
@@ -79,6 +81,8 @@ class TrackedBill:
     subjects: list[str] = field(default_factory=list)
     committee: str = ""
     committee_id: int = 0
+    history: list[dict] = field(default_factory=list)
+    solar_keywords: list[str] = field(default_factory=list)
 
     @property
     def status_text(self) -> str:
@@ -139,15 +143,25 @@ def load_tracked_bills(path: Path) -> list[TrackedBill]:
             subjects=b.get("subjects", []),
             committee=b.get("committee", ""),
             committee_id=b.get("committee_id", 0),
+            history=b.get("history", []),
+            solar_keywords=b.get("solar_keywords", []),
+            progress_details=b.get("progress_details", []),
         ))
     return bills
 
 
 def save_tracked_bills(bills: list[TrackedBill], path: Path) -> None:
-    """Save tracked bills to JSON file."""
+    """Save tracked bills to JSON file with file locking."""
     path.parent.mkdir(parents=True, exist_ok=True)
-    with open(path, "w") as f:
-        json.dump([asdict(b) for b in bills], f, indent=2)
+    # Write to temp file then rename for atomicity
+    tmp_path = path.with_suffix(".tmp")
+    with open(tmp_path, "w") as f:
+        fcntl.flock(f, fcntl.LOCK_EX)
+        try:
+            json.dump([asdict(b) for b in bills], f, indent=2)
+        finally:
+            fcntl.flock(f, fcntl.LOCK_UN)
+    tmp_path.rename(path)
 
 
 def _extract_sponsors(bill_data: dict) -> list[dict]:
@@ -289,6 +303,7 @@ def check_bill(api: LegiScanAPI, tracked: TrackedBill) -> Optional[BillChange]:
     tracked.change_hash = new_hash
     tracked.status = bill_data["status"]
     tracked.progress_events = api_event_codes
+    tracked.progress_details = [{"event": p["event"], "date": p.get("date", "")} for p in api_progress]
     tracked.url = bill_data.get("url", tracked.url)
     tracked.state_link = bill_data.get("state_link", tracked.state_link)
     tracked.sponsors = new_sponsors
@@ -314,6 +329,7 @@ def check_bill(api: LegiScanAPI, tracked: TrackedBill) -> Optional[BillChange]:
         latest = max(api_history, key=lambda h: h["date"])
         tracked.last_history_date = latest["date"]
         tracked.last_history_action = latest["action"]
+        tracked.history = [{"date": h["date"], "action": h["action"], "chamber": h.get("chamber", ""), "chamber_id": h.get("chamber_id", 0)} for h in api_history]
 
     return change
 

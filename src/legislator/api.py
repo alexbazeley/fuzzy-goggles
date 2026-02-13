@@ -1,11 +1,16 @@
 """LegiScan API client."""
 
 import json
+import time
 import urllib.request
 import urllib.parse
+import urllib.error
 from typing import Any, Optional
 
 BASE_URL = "https://api.legiscan.com/"
+
+MAX_RETRIES = 3
+RETRY_BACKOFF = [1, 2, 4]  # seconds between retries
 
 
 class LegiScanAPI:
@@ -13,17 +18,29 @@ class LegiScanAPI:
         self.api_key = api_key
 
     def _call(self, op: str, **params: Any) -> dict:
-        """Make an API call and return the parsed JSON response."""
+        """Make an API call with retry logic and return the parsed JSON response."""
         params["key"] = self.api_key
         params["op"] = op
         url = BASE_URL + "?" + urllib.parse.urlencode(params)
         req = urllib.request.Request(url)
-        with urllib.request.urlopen(req, timeout=30) as resp:
-            data = json.loads(resp.read().decode())
-        if data.get("status") == "ERROR":
-            msg = data.get("alert", {}).get("message", str(data))
-            raise RuntimeError(f"LegiScan API error: {msg}")
-        return data
+
+        last_error = None
+        for attempt in range(MAX_RETRIES + 1):
+            try:
+                with urllib.request.urlopen(req, timeout=30) as resp:
+                    data = json.loads(resp.read().decode())
+                if data.get("status") == "ERROR":
+                    msg = data.get("alert", {}).get("message", str(data))
+                    raise RuntimeError(f"LegiScan API error: {msg}")
+                return data
+            except RuntimeError:
+                raise  # Don't retry API-level errors (bad params, etc.)
+            except (urllib.error.URLError, urllib.error.HTTPError, TimeoutError, OSError) as e:
+                last_error = e
+                if attempt < MAX_RETRIES:
+                    time.sleep(RETRY_BACKOFF[attempt])
+
+        raise RuntimeError(f"LegiScan API request failed after {MAX_RETRIES + 1} attempts: {last_error}")
 
     def get_bill(self, bill_id: int) -> dict:
         """Fetch full bill details including history, progress, sponsors, calendar."""
@@ -47,6 +64,15 @@ class LegiScanAPI:
         """
         data = self._call("getSessionList", state=state)
         return data.get("sessions", [])
+
+    def get_bill_text(self, doc_id: int) -> dict:
+        """Fetch the text/document content for a specific bill text document.
+
+        Returns dict with 'doc_id', 'bill_id', 'date', 'type', 'mime', 'doc'
+        (base64 encoded document content).
+        """
+        data = self._call("getBillText", id=doc_id)
+        return data.get("text", {})
 
     def get_session_people(self, session_id: int) -> list[dict]:
         """Get all people (legislators) active in a specific session."""
