@@ -150,12 +150,14 @@ def load_tracked_bills(path: Path) -> list[TrackedBill]:
 
 
 def save_tracked_bills(bills: list[TrackedBill], path: Path) -> None:
-    """Save tracked bills to JSON file atomically (write to temp, then rename)."""
+    """Save tracked bills to JSON file atomically (write to temp, then replace)."""
+    import os
     path.parent.mkdir(parents=True, exist_ok=True)
     tmp_path = path.with_suffix(".tmp")
     with open(tmp_path, "w") as f:
         json.dump([asdict(b) for b in bills], f, indent=2)
-    tmp_path.rename(path)
+    # os.replace works on both Windows and Linux (atomic overwrite)
+    os.replace(str(tmp_path), str(path))
 
 
 def _extract_sponsors(bill_data: dict) -> list[dict]:
