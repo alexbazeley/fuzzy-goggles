@@ -7,6 +7,7 @@ from flask import Flask, jsonify, request, send_from_directory
 from legislator.api import LegiScanAPI
 from legislator.checker import (
     TrackedBill,
+    PROGRESS_EVENTS,
     load_tracked_bills,
     save_tracked_bills,
     check_all_bills,
@@ -18,6 +19,7 @@ from legislator.config import get_config, require_email_config
 from legislator.emailer import send_alert
 from legislator.scoring import compute_impact_score, get_session_status
 from legislator.related import find_related_bills
+from legislator.summarizer import summarize_bill
 
 DATA_PATH = Path(__file__).resolve().parent.parent.parent / "data" / "tracked_bills.json"
 STATIC_DIR = Path(__file__).resolve().parent / "static"
@@ -64,7 +66,7 @@ def create_app() -> Flask:
         else:  # default: date
             bills.sort(key=lambda b: b.last_history_date or "", reverse=reverse)
 
-        # Enrich each bill with impact score and session status
+        # Enrich each bill with impact score, session status, and milestones
         result = []
         for b in bills:
             d = b.to_dict()
@@ -72,6 +74,11 @@ def create_app() -> Flask:
             session_info = get_session_status(b)
             if session_info:
                 d["session_status"] = session_info
+            # Map progress event codes to human-readable milestone labels
+            d["milestones"] = [
+                PROGRESS_EVENTS.get(code, f"Event {code}")
+                for code in b.progress_events
+            ]
             result.append(d)
 
         return jsonify(result)
@@ -126,6 +133,21 @@ def create_app() -> Flask:
             committee_id=committee.get("committee_id", 0) if committee else 0,
         )
 
+        # Generate solar developer summary via LLM
+        try:
+            summary = summarize_bill(
+                title=new_bill.title,
+                description=new_bill.description,
+                state=new_bill.state,
+                status_text=new_bill.status_text,
+                subjects=new_bill.subjects,
+                sponsors=new_bill.sponsors,
+                api_key=config.get("ANTHROPIC_API_KEY"),
+            )
+            new_bill.solar_summary = summary
+        except Exception:
+            pass  # Summary is best-effort
+
         bills.append(new_bill)
         save_tracked_bills(bills, DATA_PATH)
 
@@ -167,6 +189,32 @@ def create_app() -> Flask:
         d = found.to_dict()
         d["impact"] = compute_impact_score(found)
         return jsonify(d)
+
+    @app.route("/api/bills/<int:bill_id>/summarize", methods=["POST"])
+    def regenerate_summary(bill_id: int):
+        """Regenerate the solar developer summary for a bill."""
+        bills = load_tracked_bills(DATA_PATH)
+        bill = next((b for b in bills if b.bill_id == bill_id), None)
+        if not bill:
+            return jsonify({"error": "Bill not found"}), 404
+
+        try:
+            summary = summarize_bill(
+                title=bill.title,
+                description=bill.description,
+                state=bill.state,
+                status_text=bill.status_text,
+                subjects=bill.subjects,
+                sponsors=bill.sponsors,
+                api_key=config.get("ANTHROPIC_API_KEY"),
+            )
+            if not summary:
+                return jsonify({"error": "ANTHROPIC_API_KEY not configured"}), 503
+            bill.solar_summary = summary
+            save_tracked_bills(bills, DATA_PATH)
+            return jsonify({"bill_id": bill_id, "solar_summary": summary})
+        except Exception as e:
+            return jsonify({"error": str(e)}), 502
 
     @app.route("/api/bills/<int:bill_id>/related", methods=["GET"])
     def get_related(bill_id: int):
