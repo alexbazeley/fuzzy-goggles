@@ -1,93 +1,499 @@
-"""Impact scoring and session calendar awareness for tracked bills."""
+"""Passage likelihood scoring and session calendar awareness for tracked bills."""
 
-from datetime import date, datetime
+from collections import namedtuple
+from datetime import date, datetime, timedelta
 from typing import Optional
+import re
 
 from legislator.checker import TrackedBill, PROGRESS_EVENTS, STATUS_CODES
 
 
-# --- Impact Scoring ---
+# --- Passage Likelihood Model ---
 
-def compute_impact_score(bill: TrackedBill) -> dict:
-    """Compute a 0-100 impact/likelihood score for a bill passing.
+DimensionResult = namedtuple("DimensionResult", ["score", "max_score", "detail"])
 
-    Returns dict with 'score', 'label', and 'factors' (list of explanation strings).
-    """
-    score = 0
-    factors = []
 
-    # 1. Status progression (0-40 points)
-    status_points = {1: 10, 2: 25, 3: 35, 4: 40, 5: 0, 6: 0}
-    sp = status_points.get(bill.status, 0)
-    score += sp
-    if bill.status >= 2:
-        factors.append(f"Advanced to {bill.status_text} (+{sp})")
-    elif bill.status == 1:
-        factors.append(f"Still at {bill.status_text} stage (+{sp})")
+def _parse_date(d: str) -> Optional[date]:
+    """Parse YYYY-MM-DD string to date, or None on failure."""
+    try:
+        return datetime.strptime(d, "%Y-%m-%d").date()
+    except (ValueError, TypeError):
+        return None
 
+
+def _score_procedural(bill: TrackedBill) -> DimensionResult:
+    """0-30 points based on legislative stage advancement."""
+    MAX = 30
+    events = set(bill.progress_events)
+
+    if bill.status == 4:
+        return DimensionResult(MAX, MAX, f"Bill has passed (+{MAX})")
     if bill.status in (5, 6):
-        factors.append(f"Bill is {bill.status_text} — unlikely to pass")
-        return {"score": 0, "label": "Dead", "factors": factors}
+        return DimensionResult(0, MAX, f"Bill is {bill.status_text}")
+    if bill.status == 3:  # Enrolled
+        return DimensionResult(27, MAX, "Enrolled — passed both chambers (+27)")
+    if bill.status == 2:  # Engrossed
+        return DimensionResult(22, MAX, "Engrossed — passed origin chamber (+22)")
 
-    # 2. Sponsor count (0-20 points)
-    num_sponsors = len(bill.sponsors)
-    if num_sponsors >= 10:
-        sponsor_pts = 20
-    elif num_sponsors >= 5:
-        sponsor_pts = 15
-    elif num_sponsors >= 3:
-        sponsor_pts = 10
-    elif num_sponsors >= 1:
-        sponsor_pts = 5
+    # Status 1 (Introduced) — differentiate by progress events
+    if 11 in events:  # Committee Report DNP
+        return DimensionResult(0, MAX, "Committee reported Do Not Pass (+0)")
+    if 10 in events:  # Committee Report Pass
+        return DimensionResult(16, MAX, "Committee reported favorably (+16)")
+    if 9 in events:   # Committee Referral
+        return DimensionResult(8, MAX, "Referred to committee (+8)")
+
+    return DimensionResult(3, MAX, "Introduced, awaiting committee referral (+3)")
+
+
+def _score_sponsors(bill: TrackedBill) -> DimensionResult:
+    """0-20 points based on sponsor quality and quantity."""
+    MAX = 20
+    sponsors = bill.sponsors
+    if not sponsors:
+        return DimensionResult(0, MAX, "No sponsor data")
+
+    points = 0
+    details = []
+
+    # Primary sponsor exists
+    primaries = [s for s in sponsors if s.get("sponsor_type") in
+                 ("Primary Sponsor", "Sponsor")]
+    if primaries:
+        points += 2
+        if len(primaries) > 1:
+            points += 2
+            details.append(f"{len(primaries)} primary sponsors")
+        else:
+            details.append("Has primary sponsor")
+
+    # Co-sponsor count
+    cosponsors = [s for s in sponsors if s.get("sponsor_type") == "Co-Sponsor"]
+    n_co = len(cosponsors)
+    if n_co >= 10:
+        points += 6
+    elif n_co >= 5:
+        points += 4
+    elif n_co >= 2:
+        points += 2
+    if n_co > 0:
+        details.append(f"{n_co} co-sponsor(s)")
+
+    # Cross-chamber sponsors (bicameral)
+    roles = {s.get("role", "") for s in sponsors}
+    if "Rep" in roles and "Sen" in roles:
+        points += 3
+        details.append("bicameral")
+
+    # Joint sponsors
+    if any(s.get("sponsor_type") == "Joint Sponsor" for s in sponsors):
+        points += 3
+        details.append("joint sponsors")
+
+    points = min(points, MAX)
+    return DimensionResult(points, MAX, "; ".join(details) + f" (+{points})")
+
+
+def _score_bipartisan(bill: TrackedBill) -> DimensionResult:
+    """0-12 points based on depth of cross-party support."""
+    MAX = 12
+    sponsors = bill.sponsors
+    if not sponsors:
+        return DimensionResult(0, MAX, "No sponsor data")
+
+    parties = {}
+    for s in sponsors:
+        p = s.get("party", "")
+        if p:
+            parties[p] = parties.get(p, 0) + 1
+
+    num_parties = len(parties)
+    if num_parties < 2:
+        return DimensionResult(0, MAX, "Single-party sponsors (+0)")
+
+    if num_parties >= 3:
+        return DimensionResult(12, MAX,
+                               f"Tri-partisan: {', '.join(sorted(parties))} (+12)")
+
+    # Two parties — scale by minority party depth
+    sorted_counts = sorted(parties.values())
+    minority_count = sorted_counts[0]
+    party_names = ", ".join(sorted(parties))
+
+    if minority_count >= 3:
+        pts = 8
+    elif minority_count >= 2:
+        pts = 6
     else:
-        sponsor_pts = 0
-    score += sponsor_pts
-    if num_sponsors > 0:
-        factors.append(f"{num_sponsors} sponsor(s) (+{sponsor_pts})")
+        pts = 4  # Single token cosponsor from other party
 
-    # 3. Bipartisan support (0-15 points)
-    parties = {s.get("party", "") for s in bill.sponsors if s.get("party")}
-    parties.discard("")
-    if len(parties) >= 2:
-        score += 15
-        factors.append(f"Bipartisan support from {', '.join(sorted(parties))} (+15)")
+    return DimensionResult(pts, MAX,
+                           f"Bipartisan: {party_names} ({minority_count} minority) (+{pts})")
 
-    # 4. Progress milestones (0-15 points)
-    milestone_count = len(bill.progress_events)
-    milestone_pts = min(milestone_count * 3, 15)
-    score += milestone_pts
-    if milestone_count > 0:
-        factors.append(f"{milestone_count} milestone(s) reached (+{milestone_pts})")
 
-    # 5. Recent activity bonus (0-10 points)
+def _score_momentum(bill: TrackedBill) -> DimensionResult:
+    """0-15 points based on activity recency and velocity."""
+    MAX = 15
+    points = 0
+    details = []
+    today = date.today()
+
+    # Recency of last action
     if bill.last_history_date:
-        try:
-            last_dt = datetime.strptime(bill.last_history_date, "%Y-%m-%d").date()
-            days_ago = (date.today() - last_dt).days
+        last_dt = _parse_date(bill.last_history_date)
+        if last_dt:
+            days_ago = (today - last_dt).days
             if days_ago <= 7:
-                score += 10
-                factors.append("Active in last 7 days (+10)")
+                points += 5
+                details.append("active in last 7 days")
             elif days_ago <= 30:
-                score += 5
-                factors.append("Active in last 30 days (+5)")
+                points += 3
+                details.append("active in last 30 days")
+            elif days_ago <= 60:
+                points += 1
+                details.append("active in last 60 days")
             elif days_ago > 90:
-                score -= 5
-                factors.append("No activity in 90+ days (-5)")
-        except ValueError:
-            pass
+                points -= 3
+                details.append("inactive 90+ days")
 
-    score = max(0, min(100, score))
+    # Velocity between milestones
+    if len(bill.progress_details) >= 2:
+        dates = sorted(
+            [_parse_date(p["date"]) for p in bill.progress_details if p.get("date")],
+            key=lambda d: d or date.min
+        )
+        dates = [d for d in dates if d is not None]
+        if len(dates) >= 2:
+            intervals = [(dates[i + 1] - dates[i]).days for i in range(len(dates) - 1)]
+            avg_interval = sum(intervals) / len(intervals)
+            if avg_interval < 14:
+                points += 4
+                details.append("fast advancement")
+            elif avg_interval < 45:
+                points += 2
+                details.append("moderate pace")
 
-    if score >= 70:
-        label = "High"
-    elif score >= 40:
-        label = "Moderate"
-    elif score >= 20:
-        label = "Low"
+    # Upcoming calendar events
+    today_str = today.isoformat()
+    future_events = [c for c in bill.calendar if c.get("date", "") >= today_str]
+    if future_events:
+        points += 3
+        details.append(f"{len(future_events)} upcoming event(s)")
+
+    # Action density in last 30 days
+    cutoff = (today - timedelta(days=30)).isoformat()
+    recent_actions = [h for h in bill.history if h.get("date", "") >= cutoff]
+    if len(recent_actions) >= 3:
+        points += 3
+        details.append("high recent activity")
+    elif len(recent_actions) >= 1:
+        points += 1
+
+    points = max(0, min(points, MAX))
+    return DimensionResult(points, MAX, "; ".join(details) + f" (+{points})" if details else f"No activity data (+{points})")
+
+
+def _get_session_pct_elapsed(bill: TrackedBill) -> Optional[float]:
+    """Return session % elapsed (0-100), or None if no session data."""
+    if not bill.session_year_end:
+        return None
+    try:
+        session_end = date(bill.session_year_end, 12, 31)
+        session_start = date(bill.session_year_start, 1, 1)
+    except (ValueError, TypeError):
+        return None
+    total_days = (session_end - session_start).days or 1
+    elapsed = (date.today() - session_start).days
+    return max(0, min(100, (elapsed / total_days) * 100))
+
+
+def _score_timing(bill: TrackedBill) -> DimensionResult:
+    """0-10 points based on bill progress vs session timeline."""
+    MAX = 10
+    pct = _get_session_pct_elapsed(bill)
+    if pct is None:
+        return DimensionResult(5, MAX, "No session data, assuming mid-range (+5)")
+
+    # Has the bill cleared committee?
+    events = set(bill.progress_events)
+    cleared_committee = bill.status >= 2 or 10 in events
+    in_committee = 9 in events and not cleared_committee
+    just_introduced = not in_committee and not cleared_committee and bill.status == 1
+
+    if pct < 25:
+        # Early session — most bills are fine
+        if bill.status >= 2:
+            pts = 10
+            detail = "Early session, already advancing"
+        else:
+            pts = 7
+            detail = "Early in session, plenty of time"
+    elif pct < 50:
+        if cleared_committee:
+            pts = 8
+            detail = "Pre-midpoint, cleared committee"
+        elif in_committee:
+            pts = 6
+            detail = "Pre-midpoint, in committee"
+        else:
+            pts = 4
+            detail = "Pre-midpoint, not yet in committee"
+    elif pct < 75:
+        if bill.status >= 2:
+            pts = 8
+            detail = "Past midpoint, passed a chamber"
+        elif cleared_committee:
+            pts = 6
+            detail = "Past midpoint, cleared committee"
+        elif in_committee:
+            pts = 2
+            detail = "Past midpoint, still in committee"
+        else:
+            pts = 1
+            detail = "Past midpoint, no committee action"
     else:
-        label = "Very Low"
+        # Session > 75% elapsed
+        if bill.status >= 3:
+            pts = 7
+            detail = "Late session, enrolled or beyond"
+        elif bill.status == 2:
+            pts = 5
+            detail = "Late session, engrossed"
+        elif cleared_committee:
+            pts = 2
+            detail = "Late session, only cleared committee"
+        else:
+            pts = 0
+            detail = "Late session, not through committee"
 
-    return {"score": score, "label": label, "factors": factors}
+    return DimensionResult(pts, MAX, f"{detail} ({pct:.0f}% elapsed) (+{pts})")
+
+
+def _score_context(bill: TrackedBill) -> DimensionResult:
+    """0-8 points based on solar policy context signals."""
+    MAX = 8
+    points = 0
+    details = []
+
+    # Solar keyword category breadth
+    if bill.solar_keywords:
+        categories = {kw.split(":")[0].strip() for kw in bill.solar_keywords if ":" in kw}
+        n_cats = len(categories)
+        if n_cats >= 3:
+            points += 4
+            details.append(f"{n_cats} solar categories")
+        elif n_cats >= 1:
+            points += 2
+            details.append(f"{n_cats} solar category")
+
+        # High-interest categories bonus
+        high_interest = {"Net Metering & Interconnection", "Incentives & Finance"}
+        if categories & high_interest:
+            points += 2
+            details.append("high-interest topics")
+
+    # Subject tags with energy relevance
+    energy_terms = {"energy", "utility", "utilities", "electric", "renewable",
+                    "solar", "environment", "power", "grid"}
+    if bill.subjects:
+        subject_text = " ".join(bill.subjects).lower()
+        if any(term in subject_text for term in energy_terms):
+            points += 2
+            details.append("energy-related subjects")
+
+    points = min(points, MAX)
+    return DimensionResult(points, MAX, "; ".join(details) + f" (+{points})" if details else f"No context signals (+{points})")
+
+
+def _score_structure(bill: TrackedBill) -> DimensionResult:
+    """0-5 points based on bill structural characteristics."""
+    MAX = 5
+    points = 0
+    details = []
+
+    bn = bill.bill_number.upper().strip()
+
+    # Senate origin
+    if bn.startswith("S") or bn.startswith("SB"):
+        points += 1
+        details.append("Senate origin")
+
+    # Resolution type (higher pass rate but less legal weight)
+    if re.search(r'\b(SJR|HJR|SR|HR|SCR|HCR)\b', bn):
+        points += 1
+        details.append("resolution")
+
+    # Focused scope
+    n_subjects = len(bill.subjects)
+    if 1 <= n_subjects <= 2:
+        points += 2
+        details.append("focused scope")
+    elif n_subjects == 0:
+        pass  # no data, no penalty
+    # 3+ subjects = broader bill, no bonus
+
+    # Amendment to existing law
+    desc_lower = (bill.description or "").lower()
+    if any(kw in desc_lower for kw in ("amend", "relating to", "revise", "modify")):
+        points += 1
+        details.append("amends existing law")
+
+    points = min(points, MAX)
+    return DimensionResult(points, MAX, "; ".join(details) + f" (+{points})" if details else f"(+{points})")
+
+
+def _compute_confidence(bill: TrackedBill) -> str:
+    """Rate data completeness as high/medium/low."""
+    completeness = 0
+    if bill.sponsors:
+        completeness += 1
+    if bill.history:
+        completeness += 1
+    if bill.progress_details:
+        completeness += 1
+    if bill.session_year_end:
+        completeness += 1
+    if bill.calendar:
+        completeness += 0.5
+    if bill.solar_keywords:
+        completeness += 0.5
+
+    if completeness >= 4:
+        return "high"
+    if completeness >= 2:
+        return "medium"
+    return "low"
+
+
+def _collect_risks(bill: TrackedBill, dims: dict) -> list[str]:
+    """Identify key risk factors for bill passage."""
+    risks = []
+
+    # No bipartisan support
+    if dims["bipartisan"].score == 0 and bill.sponsors:
+        risks.append("No bipartisan support detected")
+
+    # Stalled in committee late in session
+    pct = _get_session_pct_elapsed(bill)
+    if pct is not None and pct > 50 and bill.status == 1:
+        events = set(bill.progress_events)
+        if 10 not in events:  # hasn't cleared committee
+            risks.append(f"Still in committee with session {pct:.0f}% elapsed")
+
+    # No recent activity
+    if bill.last_history_date:
+        last_dt = _parse_date(bill.last_history_date)
+        if last_dt and (date.today() - last_dt).days > 90:
+            risks.append("No legislative activity in 90+ days")
+
+    # Few sponsors
+    if len(bill.sponsors) <= 1:
+        risks.append("Only 1 sponsor — limited coalition support")
+
+    # Committee DNP
+    if 11 in set(bill.progress_events):
+        risks.append("Committee reported Do Not Pass")
+
+    # No upcoming events and session active
+    today_str = date.today().isoformat()
+    future_events = [c for c in bill.calendar if c.get("date", "") >= today_str]
+    if not future_events and bill.status < 4:
+        if pct is not None and 0 < pct < 100:
+            risks.append("No upcoming hearings or votes scheduled")
+
+    return risks
+
+
+def compute_passage_likelihood(bill: TrackedBill) -> dict:
+    """Compute a 0-100 passage likelihood score using 7 analytical dimensions.
+
+    Returns dict with 'score', 'label', 'confidence', 'dimensions', 'factors', and 'risks'.
+    """
+    # Terminal states short-circuit
+    if bill.status in (5, 6):
+        return {
+            "score": 0,
+            "label": "Dead",
+            "confidence": "high",
+            "dimensions": {},
+            "factors": [f"Bill is {bill.status_text}"],
+            "risks": [f"Bill has been {bill.status_text.lower()}"],
+        }
+    if bill.status == 4:
+        return {
+            "score": 98,
+            "label": "Passed",
+            "confidence": "high",
+            "dimensions": {},
+            "factors": ["Bill has passed"],
+            "risks": [],
+        }
+
+    # Score each dimension
+    dim_procedural = _score_procedural(bill)
+    dim_sponsors = _score_sponsors(bill)
+    dim_bipartisan = _score_bipartisan(bill)
+    dim_momentum = _score_momentum(bill)
+    dim_timing = _score_timing(bill)
+    dim_context = _score_context(bill)
+    dim_structure = _score_structure(bill)
+
+    dims = {
+        "procedural": dim_procedural,
+        "sponsors": dim_sponsors,
+        "bipartisan": dim_bipartisan,
+        "momentum": dim_momentum,
+        "timing": dim_timing,
+        "context": dim_context,
+        "structure": dim_structure,
+    }
+
+    raw_score = sum(d.score for d in dims.values())
+
+    # Session timing decay multiplier for stalled bills
+    pct = _get_session_pct_elapsed(bill)
+    events = set(bill.progress_events)
+    stalled_late = (
+        pct is not None
+        and pct > 70
+        and bill.status == 1
+        and 10 not in events  # hasn't cleared committee
+    )
+    if stalled_late:
+        raw_score = int(raw_score * 0.5)
+
+    score = max(0, min(100, raw_score))
+
+    # Label
+    if score >= 75:
+        label = "Very Likely"
+    elif score >= 55:
+        label = "Likely"
+    elif score >= 35:
+        label = "Possible"
+    elif score >= 15:
+        label = "Unlikely"
+    else:
+        label = "Very Unlikely"
+
+    confidence = _compute_confidence(bill)
+    risks = _collect_risks(bill, dims)
+
+    factors = [d.detail for d in dims.values() if d.detail]
+
+    dimensions_dict = {
+        name: {"score": d.score, "max": d.max_score, "detail": d.detail}
+        for name, d in dims.items()
+    }
+
+    return {
+        "score": score,
+        "label": label,
+        "confidence": confidence,
+        "dimensions": dimensions_dict,
+        "factors": factors,
+        "risks": risks,
+    }
 
 
 # --- Session Calendar Awareness ---
@@ -106,13 +512,9 @@ def get_session_status(bill: TrackedBill) -> Optional[dict]:
         return None
 
     today = date.today()
-    current_year = today.year
 
     # Estimate session end as Dec 31 of year_end (real sine_die varies by state)
-    # We use year_end as a rough proxy
     try:
-        # Most sessions end within their stated year_end
-        # Some states have specific adjourn dates, but we use year boundaries
         session_end = date(bill.session_year_end, 12, 31)
         session_start = date(bill.session_year_start, 1, 1)
     except (ValueError, TypeError):

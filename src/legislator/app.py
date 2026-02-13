@@ -17,7 +17,7 @@ from legislator.checker import (
 )
 from legislator.config import get_config, require_email_config
 from legislator.emailer import send_alert
-from legislator.scoring import compute_impact_score, get_session_status
+from legislator.scoring import compute_passage_likelihood, get_session_status
 from legislator.related import find_related_bills
 from legislator.solar import analyze_bill_text, decode_bill_text
 
@@ -66,16 +66,16 @@ def create_app() -> Flask:
         else:  # default: date
             bills.sort(key=lambda b: b.last_history_date or "", reverse=reverse)
 
-        # Enrich each bill with impact score, session status, and milestones
-        impact_filter = request.args.get("impact")
+        # Enrich each bill with passage likelihood, session status, and milestones
+        passage_filter = request.args.get("passage")
 
         result = []
         for b in bills:
             d = b.to_dict()
-            d["impact"] = compute_impact_score(b)
+            d["passage"] = compute_passage_likelihood(b)
 
-            # Filter by impact label after computing scores
-            if impact_filter and d["impact"]["label"] != impact_filter:
+            # Filter by passage label after computing scores
+            if passage_filter and d["passage"]["label"] != passage_filter:
                 continue
 
             session_info = get_session_status(b)
@@ -152,7 +152,7 @@ def create_app() -> Flask:
         save_tracked_bills(bills, DATA_PATH)
 
         d = new_bill.to_dict()
-        d["impact"] = compute_impact_score(new_bill)
+        d["passage"] = compute_passage_likelihood(new_bill)
         session_info = get_session_status(new_bill)
         if session_info:
             d["session_status"] = session_info
@@ -208,7 +208,7 @@ def create_app() -> Flask:
         save_tracked_bills(bills, DATA_PATH)
 
         d = bill.to_dict()
-        d["impact"] = compute_impact_score(bill)
+        d["passage"] = compute_passage_likelihood(bill)
         if bill.progress_details:
             d["milestones"] = [
                 {"label": PROGRESS_EVENTS.get(p["event"], f"Event {p['event']}"), "date": p.get("date", "")}
@@ -295,7 +295,7 @@ def create_app() -> Flask:
 
         save_tracked_bills(bills, DATA_PATH)
         d = found.to_dict()
-        d["impact"] = compute_impact_score(found)
+        d["passage"] = compute_passage_likelihood(found)
         return jsonify(d)
 
     @app.route("/api/bills/<int:bill_id>/related", methods=["GET"])
