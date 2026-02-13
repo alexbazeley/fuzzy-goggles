@@ -32,6 +32,29 @@ STATUS_CODES = {
 
 
 @dataclass
+class Sponsor:
+    people_id: int
+    name: str
+    party: str = ""
+    role: str = ""
+    sponsor_type: str = ""  # "Primary" or "Co-Sponsor"
+
+    def to_dict(self) -> dict:
+        return asdict(self)
+
+
+@dataclass
+class CalendarEvent:
+    date: str
+    description: str
+    location: str = ""
+    event_type: str = ""  # "hearing", "vote", etc.
+
+    def to_dict(self) -> dict:
+        return asdict(self)
+
+
+@dataclass
 class TrackedBill:
     bill_id: int
     state: str
@@ -44,6 +67,18 @@ class TrackedBill:
     last_history_date: str
     last_history_action: str
     progress_events: list[int] = field(default_factory=list)
+    # New fields
+    priority: str = "medium"  # "high", "medium", "low"
+    sponsors: list[dict] = field(default_factory=list)
+    calendar: list[dict] = field(default_factory=list)
+    session_id: int = 0
+    session_name: str = ""
+    session_year_start: int = 0
+    session_year_end: int = 0
+    description: str = ""
+    subjects: list[str] = field(default_factory=list)
+    committee: str = ""
+    committee_id: int = 0
 
     @property
     def status_text(self) -> str:
@@ -56,12 +91,20 @@ class TrackedBill:
 
 
 @dataclass
+class SponsorChange:
+    added: list[dict] = field(default_factory=list)
+    removed: list[dict] = field(default_factory=list)
+
+
+@dataclass
 class BillChange:
     bill: TrackedBill
     old_status: int
     new_status: int
     new_progress_events: list[dict]
     new_history_actions: list[dict]
+    sponsor_changes: Optional[SponsorChange] = None
+    new_calendar_events: list[dict] = field(default_factory=list)
 
 
 def load_tracked_bills(path: Path) -> list[TrackedBill]:
@@ -70,7 +113,34 @@ def load_tracked_bills(path: Path) -> list[TrackedBill]:
         return []
     with open(path) as f:
         data = json.load(f)
-    return [TrackedBill(**b) for b in data]
+    bills = []
+    for b in data:
+        # Handle old data without new fields gracefully
+        bills.append(TrackedBill(
+            bill_id=b["bill_id"],
+            state=b["state"],
+            bill_number=b["bill_number"],
+            title=b["title"],
+            url=b["url"],
+            state_link=b["state_link"],
+            change_hash=b["change_hash"],
+            status=b["status"],
+            last_history_date=b["last_history_date"],
+            last_history_action=b["last_history_action"],
+            progress_events=b.get("progress_events", []),
+            priority=b.get("priority", "medium"),
+            sponsors=b.get("sponsors", []),
+            calendar=b.get("calendar", []),
+            session_id=b.get("session_id", 0),
+            session_name=b.get("session_name", ""),
+            session_year_start=b.get("session_year_start", 0),
+            session_year_end=b.get("session_year_end", 0),
+            description=b.get("description", ""),
+            subjects=b.get("subjects", []),
+            committee=b.get("committee", ""),
+            committee_id=b.get("committee_id", 0),
+        ))
+    return bills
 
 
 def save_tracked_bills(bills: list[TrackedBill], path: Path) -> None:
@@ -78,6 +148,60 @@ def save_tracked_bills(bills: list[TrackedBill], path: Path) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     with open(path, "w") as f:
         json.dump([asdict(b) for b in bills], f, indent=2)
+
+
+def _extract_sponsors(bill_data: dict) -> list[dict]:
+    """Extract sponsor list from API bill data."""
+    sponsors_raw = bill_data.get("sponsors", [])
+    sponsors = []
+    for s in sponsors_raw:
+        sponsors.append({
+            "people_id": s.get("people_id", 0),
+            "name": s.get("name", ""),
+            "party": s.get("party", ""),
+            "role": s.get("role", ""),
+            "sponsor_type": s.get("sponsor_type", ""),
+        })
+    return sponsors
+
+
+def _extract_calendar(bill_data: dict) -> list[dict]:
+    """Extract calendar/hearing events from API bill data."""
+    calendar_raw = bill_data.get("calendar", [])
+    events = []
+    for c in calendar_raw:
+        events.append({
+            "date": c.get("date", ""),
+            "description": c.get("description", c.get("desc", "")),
+            "location": c.get("location", ""),
+            "event_type": c.get("type", "hearing"),
+        })
+    return events
+
+
+def _extract_subjects(bill_data: dict) -> list[str]:
+    """Extract subject/topic tags from API bill data."""
+    subjects_raw = bill_data.get("subjects", [])
+    if isinstance(subjects_raw, list):
+        return [s.get("subject_name", str(s)) if isinstance(s, dict) else str(s)
+                for s in subjects_raw]
+    return []
+
+
+def _detect_sponsor_changes(old_sponsors: list[dict], new_sponsors: list[dict]) -> Optional[SponsorChange]:
+    """Compare sponsor lists and return changes, or None if unchanged."""
+    old_ids = {s["people_id"] for s in old_sponsors}
+    new_ids = {s["people_id"] for s in new_sponsors}
+
+    added_ids = new_ids - old_ids
+    removed_ids = old_ids - new_ids
+
+    if not added_ids and not removed_ids:
+        return None
+
+    added = [s for s in new_sponsors if s["people_id"] in added_ids]
+    removed = [s for s in old_sponsors if s["people_id"] in removed_ids]
+    return SponsorChange(added=added, removed=removed)
 
 
 def check_bill(api: LegiScanAPI, tracked: TrackedBill) -> Optional[BillChange]:
@@ -97,12 +221,24 @@ def check_bill(api: LegiScanAPI, tracked: TrackedBill) -> Optional[BillChange]:
     api_history = bill_data.get("history", [])
     new_history = [h for h in api_history if h["date"] > tracked.last_history_date]
 
+    # Detect sponsor changes
+    new_sponsors = _extract_sponsors(bill_data)
+    sponsor_changes = _detect_sponsor_changes(tracked.sponsors, new_sponsors)
+
+    # Detect new calendar events
+    new_calendar = _extract_calendar(bill_data)
+    old_cal_dates = {c["date"] + c.get("description", "") for c in tracked.calendar}
+    new_cal_events = [c for c in new_calendar
+                      if c["date"] + c.get("description", "") not in old_cal_dates]
+
     change = BillChange(
         bill=tracked,
         old_status=tracked.status,
         new_status=bill_data["status"],
         new_progress_events=new_progress,
         new_history_actions=new_history,
+        sponsor_changes=sponsor_changes,
+        new_calendar_events=new_cal_events,
     )
 
     # Update tracked bill in place
@@ -111,6 +247,25 @@ def check_bill(api: LegiScanAPI, tracked: TrackedBill) -> Optional[BillChange]:
     tracked.progress_events = api_event_codes
     tracked.url = bill_data.get("url", tracked.url)
     tracked.state_link = bill_data.get("state_link", tracked.state_link)
+    tracked.sponsors = new_sponsors
+    tracked.calendar = new_calendar
+    tracked.subjects = _extract_subjects(bill_data)
+    tracked.description = bill_data.get("description", tracked.description)
+
+    # Update session info
+    session = bill_data.get("session", {})
+    if session:
+        tracked.session_id = session.get("session_id", tracked.session_id)
+        tracked.session_name = session.get("session_name", tracked.session_name)
+        tracked.session_year_start = session.get("year_start", tracked.session_year_start)
+        tracked.session_year_end = session.get("year_end", tracked.session_year_end)
+
+    # Update committee info
+    committee = bill_data.get("committee", {})
+    if committee:
+        tracked.committee = committee.get("name", tracked.committee)
+        tracked.committee_id = committee.get("committee_id", tracked.committee_id)
+
     if api_history:
         latest = max(api_history, key=lambda h: h["date"])
         tracked.last_history_date = latest["date"]
