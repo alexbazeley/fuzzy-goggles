@@ -30,6 +30,7 @@ def create_app() -> Flask:
     @app.route("/api/bills", methods=["GET"])
     def list_bills():
         bills = load_tracked_bills(DATA_PATH)
+        bills.sort(key=lambda b: b.last_history_date or "", reverse=True)
         return jsonify([b.to_dict() for b in bills])
 
     @app.route("/api/bills", methods=["POST"])
