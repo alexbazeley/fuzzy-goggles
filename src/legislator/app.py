@@ -10,9 +10,14 @@ from legislator.checker import (
     load_tracked_bills,
     save_tracked_bills,
     check_all_bills,
+    _extract_sponsors,
+    _extract_calendar,
+    _extract_subjects,
 )
 from legislator.config import get_config, require_email_config
 from legislator.emailer import send_alert
+from legislator.scoring import compute_impact_score, get_session_status
+from legislator.related import find_related_bills
 
 DATA_PATH = Path(__file__).resolve().parent.parent.parent / "data" / "tracked_bills.json"
 STATIC_DIR = Path(__file__).resolve().parent / "static"
@@ -30,8 +35,46 @@ def create_app() -> Flask:
     @app.route("/api/bills", methods=["GET"])
     def list_bills():
         bills = load_tracked_bills(DATA_PATH)
-        bills.sort(key=lambda b: b.last_history_date or "", reverse=True)
-        return jsonify([b.to_dict() for b in bills])
+
+        # Filtering
+        state_filter = request.args.get("state")
+        status_filter = request.args.get("status", type=int)
+        priority_filter = request.args.get("priority")
+
+        if state_filter:
+            bills = [b for b in bills if b.state == state_filter]
+        if status_filter is not None:
+            bills = [b for b in bills if b.status == status_filter]
+        if priority_filter:
+            bills = [b for b in bills if b.priority == priority_filter]
+
+        # Sorting
+        sort_by = request.args.get("sort", "date")
+        reverse = request.args.get("order", "desc") == "desc"
+
+        if sort_by == "state":
+            bills.sort(key=lambda b: b.state, reverse=reverse)
+        elif sort_by == "status":
+            bills.sort(key=lambda b: b.status, reverse=reverse)
+        elif sort_by == "priority":
+            priority_order = {"high": 0, "medium": 1, "low": 2}
+            bills.sort(key=lambda b: priority_order.get(b.priority, 1), reverse=reverse)
+        elif sort_by == "title":
+            bills.sort(key=lambda b: b.title.lower(), reverse=reverse)
+        else:  # default: date
+            bills.sort(key=lambda b: b.last_history_date or "", reverse=reverse)
+
+        # Enrich each bill with impact score and session status
+        result = []
+        for b in bills:
+            d = b.to_dict()
+            d["impact"] = compute_impact_score(b)
+            session_info = get_session_status(b)
+            if session_info:
+                d["session_status"] = session_info
+            result.append(d)
+
+        return jsonify(result)
 
     @app.route("/api/bills", methods=["POST"])
     def add_bill():
@@ -53,6 +96,11 @@ def create_app() -> Flask:
         latest = max(history, key=lambda h: h["date"]) if history else {"date": "", "action": ""}
         progress = bill_data.get("progress", [])
 
+        # Extract session info
+        session = bill_data.get("session", {})
+        # Extract committee info
+        committee = bill_data.get("committee", {})
+
         new_bill = TrackedBill(
             bill_id=bill_data["bill_id"],
             state=bill_data["state"],
@@ -65,11 +113,28 @@ def create_app() -> Flask:
             last_history_date=latest["date"],
             last_history_action=latest["action"],
             progress_events=[p["event"] for p in progress],
+            priority=body.get("priority", "medium"),
+            sponsors=_extract_sponsors(bill_data),
+            calendar=_extract_calendar(bill_data),
+            session_id=session.get("session_id", 0),
+            session_name=session.get("session_name", ""),
+            session_year_start=session.get("year_start", 0),
+            session_year_end=session.get("year_end", 0),
+            description=bill_data.get("description", ""),
+            subjects=_extract_subjects(bill_data),
+            committee=committee.get("name", "") if committee else "",
+            committee_id=committee.get("committee_id", 0) if committee else 0,
         )
 
         bills.append(new_bill)
         save_tracked_bills(bills, DATA_PATH)
-        return jsonify(new_bill.to_dict()), 201
+
+        d = new_bill.to_dict()
+        d["impact"] = compute_impact_score(new_bill)
+        session_info = get_session_status(new_bill)
+        if session_info:
+            d["session_status"] = session_info
+        return jsonify(d), 201
 
     @app.route("/api/bills/<int:bill_id>", methods=["DELETE"])
     def remove_bill(bill_id: int):
@@ -80,6 +145,42 @@ def create_app() -> Flask:
             return jsonify({"error": "Bill not found"}), 404
         save_tracked_bills(bills, DATA_PATH)
         return jsonify({"ok": True})
+
+    @app.route("/api/bills/<int:bill_id>/priority", methods=["PATCH"])
+    def set_priority(bill_id: int):
+        body = request.get_json()
+        priority = body.get("priority", "medium")
+        if priority not in ("high", "medium", "low"):
+            return jsonify({"error": "Priority must be high, medium, or low"}), 400
+
+        bills = load_tracked_bills(DATA_PATH)
+        found = None
+        for b in bills:
+            if b.bill_id == bill_id:
+                b.priority = priority
+                found = b
+                break
+        if not found:
+            return jsonify({"error": "Bill not found"}), 404
+
+        save_tracked_bills(bills, DATA_PATH)
+        d = found.to_dict()
+        d["impact"] = compute_impact_score(found)
+        return jsonify(d)
+
+    @app.route("/api/bills/<int:bill_id>/related", methods=["GET"])
+    def get_related(bill_id: int):
+        bills = load_tracked_bills(DATA_PATH)
+        bill = next((b for b in bills if b.bill_id == bill_id), None)
+        if not bill:
+            return jsonify({"error": "Bill not found"}), 404
+
+        try:
+            related = find_related_bills(api, bill)
+        except Exception as e:
+            return jsonify({"error": str(e)}), 502
+
+        return jsonify({"bill_id": bill_id, "related": related})
 
     @app.route("/api/search", methods=["GET"])
     def search_bills():
@@ -108,7 +209,7 @@ def create_app() -> Flask:
         changes = check_all_bills(api, DATA_PATH)
         change_summaries = []
         for c in changes:
-            change_summaries.append({
+            summary = {
                 "bill_id": c.bill.bill_id,
                 "state": c.bill.state,
                 "bill_number": c.bill.bill_number,
@@ -117,7 +218,15 @@ def create_app() -> Flask:
                 "new_status": c.new_status,
                 "new_progress_events": c.new_progress_events,
                 "new_history_actions": c.new_history_actions,
-            })
+            }
+            if c.sponsor_changes:
+                summary["sponsor_changes"] = {
+                    "added": c.sponsor_changes.added,
+                    "removed": c.sponsor_changes.removed,
+                }
+            if c.new_calendar_events:
+                summary["new_calendar_events"] = c.new_calendar_events
+            change_summaries.append(summary)
 
         # Try to send email if configured
         email_sent = False
@@ -134,6 +243,60 @@ def create_app() -> Flask:
             "changes_found": len(changes),
             "changes": change_summaries,
             "email_sent": email_sent,
+        })
+
+    @app.route("/api/dashboard", methods=["GET"])
+    def dashboard():
+        """Dashboard summary with stats and session warnings."""
+        bills = load_tracked_bills(DATA_PATH)
+
+        # Stats
+        by_status = {}
+        by_state = {}
+        by_priority = {"high": 0, "medium": 0, "low": 0}
+        session_warnings = []
+
+        for b in bills:
+            by_status[b.status_text] = by_status.get(b.status_text, 0) + 1
+            by_state[b.state] = by_state.get(b.state, 0) + 1
+            by_priority[b.priority] = by_priority.get(b.priority, 0) + 1
+
+            sess = get_session_status(b)
+            if sess and sess.get("warning"):
+                session_warnings.append({
+                    "bill_id": b.bill_id,
+                    "state": b.state,
+                    "bill_number": b.bill_number,
+                    "title": b.title,
+                    "warning": sess["warning"],
+                    "days_remaining": sess["days_remaining"],
+                    "is_ending_soon": sess["is_ending_soon"],
+                })
+
+        # Bills with upcoming hearings
+        upcoming_hearings = []
+        from datetime import date as date_cls
+        today = date_cls.today().isoformat()
+        for b in bills:
+            for c in b.calendar:
+                if c.get("date", "") >= today:
+                    upcoming_hearings.append({
+                        "bill_id": b.bill_id,
+                        "state": b.state,
+                        "bill_number": b.bill_number,
+                        "date": c["date"],
+                        "description": c.get("description", ""),
+                        "location": c.get("location", ""),
+                    })
+        upcoming_hearings.sort(key=lambda h: h["date"])
+
+        return jsonify({
+            "total_bills": len(bills),
+            "by_status": by_status,
+            "by_state": by_state,
+            "by_priority": by_priority,
+            "session_warnings": session_warnings,
+            "upcoming_hearings": upcoming_hearings[:20],
         })
 
     return app

@@ -26,7 +26,7 @@ class LegiScanAPI:
         return data
 
     def get_bill(self, bill_id: int) -> dict:
-        """Fetch full bill details including history and progress."""
+        """Fetch full bill details including history, progress, sponsors, calendar."""
         data = self._call("getBill", id=bill_id)
         return data["bill"]
 
@@ -38,3 +38,17 @@ class LegiScanAPI:
         """
         data = self._call("search", state=state, query=query, page=page)
         return data["searchresult"]
+
+    def get_session_list(self, state: str = "ALL") -> list[dict]:
+        """Get available legislative sessions for a state.
+
+        Returns list of session dicts with session_id, session_name,
+        session_title, year_start, year_end, special.
+        """
+        data = self._call("getSessionList", state=state)
+        return data.get("sessions", [])
+
+    def get_session_people(self, session_id: int) -> list[dict]:
+        """Get all people (legislators) active in a specific session."""
+        data = self._call("getSessionPeople", id=session_id)
+        return data.get("sessionpeople", {}).get("people", [])

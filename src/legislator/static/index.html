@@ -8,14 +8,99 @@
     * { box-sizing: border-box; margin: 0; padding: 0; }
     body {
       font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-      max-width: 960px;
+      max-width: 1100px;
       margin: 0 auto;
       padding: 24px;
       background: #f8f9fa;
       color: #1a1a1a;
     }
-    h1 { margin-bottom: 24px; font-size: 1.5rem; }
+    h1 { margin-bottom: 8px; font-size: 1.5rem; }
     h2 { margin-bottom: 12px; font-size: 1.1rem; color: #444; }
+    h3 { font-size: 0.95rem; color: #555; margin-bottom: 8px; }
+
+    /* Tabs */
+    .tabs {
+      display: flex;
+      gap: 4px;
+      margin-bottom: 20px;
+      border-bottom: 2px solid #e0e0e0;
+    }
+    .tab {
+      padding: 10px 20px;
+      cursor: pointer;
+      border: none;
+      background: none;
+      font-size: 0.95rem;
+      font-weight: 500;
+      color: #666;
+      border-bottom: 2px solid transparent;
+      margin-bottom: -2px;
+      transition: all 0.2s;
+    }
+    .tab:hover { color: #333; }
+    .tab.active { color: #2563eb; border-bottom-color: #2563eb; }
+    .tab-content { display: none; }
+    .tab-content.active { display: block; }
+
+    /* Dashboard */
+    .dashboard-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 12px;
+      margin-bottom: 20px;
+    }
+    .stat-card {
+      background: white;
+      border: 1px solid #e0e0e0;
+      border-radius: 8px;
+      padding: 16px;
+      text-align: center;
+    }
+    .stat-number {
+      font-size: 2rem;
+      font-weight: 700;
+      color: #2563eb;
+    }
+    .stat-label {
+      font-size: 0.82rem;
+      color: #666;
+      margin-top: 4px;
+    }
+
+    /* Warning banners */
+    .warning-banner {
+      background: #fef3c7;
+      border: 1px solid #f59e0b;
+      border-radius: 8px;
+      padding: 12px 16px;
+      margin-bottom: 8px;
+      font-size: 0.85rem;
+    }
+    .warning-banner .warning-title {
+      font-weight: 600;
+      color: #92400e;
+    }
+    .warning-banner .warning-text {
+      color: #78350f;
+      margin-top: 2px;
+    }
+
+    /* Hearing list */
+    .hearing-item {
+      background: white;
+      border: 1px solid #e0e0e0;
+      border-radius: 8px;
+      padding: 10px 14px;
+      margin-bottom: 6px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .hearing-date {
+      font-weight: 600;
+      color: #7c3aed;
+      min-width: 100px;
+    }
 
     /* Search */
     .search-bar {
@@ -40,6 +125,27 @@
     }
     .search-bar button:hover { background: #1d4ed8; }
 
+    /* Filter bar */
+    .filter-bar {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 12px;
+      flex-wrap: wrap;
+      align-items: center;
+    }
+    .filter-bar label {
+      font-size: 0.82rem;
+      color: #666;
+      font-weight: 500;
+    }
+    .filter-bar select {
+      padding: 6px 10px;
+      border: 1px solid #ccc;
+      border-radius: 6px;
+      font-size: 0.82rem;
+      background: white;
+    }
+
     /* Cards */
     .section { margin-bottom: 32px; }
     .card {
@@ -48,7 +154,9 @@
       border-radius: 8px;
       padding: 14px 16px;
       margin-bottom: 8px;
+      transition: border-color 0.2s;
     }
+    .card:hover { border-color: #b0b0b0; }
     .card-header {
       display: flex;
       justify-content: space-between;
@@ -66,6 +174,76 @@
     }
     .card-meta a { color: #2563eb; text-decoration: none; }
     .card-meta a:hover { text-decoration: underline; }
+
+    /* Bill detail sections (collapsible) */
+    .card-details {
+      display: none;
+      margin-top: 10px;
+      padding-top: 10px;
+      border-top: 1px solid #eee;
+    }
+    .card-details.open { display: block; }
+    .detail-section {
+      margin-bottom: 10px;
+    }
+    .detail-section h4 {
+      font-size: 0.82rem;
+      color: #444;
+      margin-bottom: 4px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+    .detail-section ul {
+      list-style: none;
+      padding: 0;
+    }
+    .detail-section li {
+      font-size: 0.85rem;
+      padding: 2px 0;
+      color: #555;
+    }
+
+    /* Timeline (progress bar) */
+    .timeline {
+      display: flex;
+      align-items: center;
+      gap: 0;
+      margin-top: 8px;
+      margin-bottom: 4px;
+    }
+    .timeline-step {
+      flex: 1;
+      text-align: center;
+      position: relative;
+    }
+    .timeline-dot {
+      width: 14px;
+      height: 14px;
+      border-radius: 50%;
+      background: #ddd;
+      margin: 0 auto 4px;
+      border: 2px solid #ccc;
+      position: relative;
+      z-index: 1;
+    }
+    .timeline-dot.reached { background: #2563eb; border-color: #1d4ed8; }
+    .timeline-dot.current { background: #16a34a; border-color: #15803d; box-shadow: 0 0 0 3px rgba(22,163,74,0.2); }
+    .timeline-dot.failed { background: #dc2626; border-color: #b91c1c; }
+    .timeline-dot.vetoed { background: #f59e0b; border-color: #d97706; }
+    .timeline-label {
+      font-size: 0.65rem;
+      color: #888;
+    }
+    .timeline-label.active { color: #1a1a1a; font-weight: 600; }
+    .timeline-connector {
+      height: 2px;
+      flex: 1;
+      background: #ddd;
+      margin-top: -18px;
+    }
+    .timeline-connector.reached { background: #2563eb; }
+
+    /* Badges */
     .badge {
       display: inline-block;
       padding: 2px 8px;
@@ -74,14 +252,22 @@
       font-weight: 600;
       white-space: nowrap;
     }
-    .badge-status {
-      background: #dbeafe;
-      color: #1e40af;
+    .badge-status { background: #dbeafe; color: #1e40af; }
+    .badge-state { background: #f0fdf4; color: #166534; }
+    .badge-priority-high { background: #fef2f2; color: #dc2626; border: 1px solid #fca5a5; }
+    .badge-priority-medium { background: #fffbeb; color: #d97706; border: 1px solid #fcd34d; }
+    .badge-priority-low { background: #f0fdf4; color: #16a34a; border: 1px solid #86efac; }
+    .badge-impact {
+      padding: 2px 8px;
+      border-radius: 12px;
+      font-size: 0.72rem;
+      font-weight: 600;
     }
-    .badge-state {
-      background: #f0fdf4;
-      color: #166534;
-    }
+    .badge-impact-high { background: #dcfce7; color: #166534; }
+    .badge-impact-moderate { background: #dbeafe; color: #1e40af; }
+    .badge-impact-low { background: #fef3c7; color: #92400e; }
+    .badge-impact-very-low { background: #f3f4f6; color: #6b7280; }
+    .badge-impact-dead { background: #fef2f2; color: #dc2626; }
 
     /* Buttons */
     .btn-sm {
@@ -92,16 +278,9 @@
       cursor: pointer;
       background: white;
     }
-    .btn-track {
-      background: #16a34a;
-      color: white;
-      border: none;
-    }
+    .btn-track { background: #16a34a; color: white; border: none; }
     .btn-track:hover { background: #15803d; }
-    .btn-remove {
-      color: #dc2626;
-      border-color: #dc2626;
-    }
+    .btn-remove { color: #dc2626; border-color: #dc2626; }
     .btn-remove:hover { background: #fef2f2; }
     .btn-check {
       background: #7c3aed;
@@ -114,6 +293,25 @@
       font-weight: 500;
     }
     .btn-check:hover { background: #6d28d9; }
+    .btn-expand {
+      background: none;
+      border: none;
+      color: #2563eb;
+      cursor: pointer;
+      font-size: 0.8rem;
+      padding: 2px 6px;
+    }
+    .btn-expand:hover { text-decoration: underline; }
+
+    /* Priority selector */
+    .priority-select {
+      padding: 2px 6px;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+      font-size: 0.75rem;
+      cursor: pointer;
+      background: white;
+    }
 
     /* Misc */
     .empty { color: #888; font-style: italic; font-size: 0.9rem; }
@@ -142,34 +340,155 @@
     .notification.success { background: #16a34a; }
     .notification.error { background: #dc2626; }
     .notification.info { background: #2563eb; }
+
+    /* Related bills */
+    .related-loading { font-size: 0.82rem; color: #666; font-style: italic; }
+    .related-card {
+      background: #f9fafb;
+      border: 1px solid #e5e7eb;
+      border-radius: 6px;
+      padding: 8px 12px;
+      margin-bottom: 4px;
+      font-size: 0.85rem;
+    }
+
+    /* Session bar */
+    .session-bar {
+      margin-top: 6px;
+    }
+    .session-progress {
+      height: 4px;
+      background: #e5e7eb;
+      border-radius: 2px;
+      overflow: hidden;
+    }
+    .session-progress-fill {
+      height: 100%;
+      border-radius: 2px;
+      transition: width 0.3s;
+    }
+    .session-progress-fill.ok { background: #2563eb; }
+    .session-progress-fill.warning { background: #f59e0b; }
+    .session-progress-fill.danger { background: #dc2626; }
+    .session-text {
+      font-size: 0.72rem;
+      color: #888;
+      margin-top: 2px;
+    }
+
+    /* Chart bars */
+    .chart-bar-container {
+      margin-bottom: 6px;
+    }
+    .chart-bar-label {
+      font-size: 0.78rem;
+      color: #555;
+      margin-bottom: 2px;
+    }
+    .chart-bar-track {
+      height: 20px;
+      background: #e5e7eb;
+      border-radius: 4px;
+      overflow: hidden;
+      position: relative;
+    }
+    .chart-bar-fill {
+      height: 100%;
+      border-radius: 4px;
+      display: flex;
+      align-items: center;
+      padding-left: 6px;
+      font-size: 0.7rem;
+      color: white;
+      font-weight: 600;
+      min-width: 20px;
+    }
+    .card-actions {
+      display: flex;
+      gap: 6px;
+      align-items: center;
+      flex-shrink: 0;
+    }
   </style>
 </head>
 <body>
   <h1>Legislation Tracker</h1>
 
-  <!-- Search Section -->
-  <div class="section">
-    <h2>Search Bills</h2>
-    <div class="search-bar">
-      <select id="stateSelect">
-        <option value="ALL">All States</option>
-      </select>
-      <input type="text" id="queryInput" placeholder="Search terms (e.g., artificial intelligence)" />
-      <button onclick="searchBills()">Search</button>
-      <span class="spinner" id="searchSpinner">Searching...</span>
-    </div>
-    <div id="searchSummary" class="search-summary"></div>
-    <div id="searchResults"></div>
+  <!-- Navigation Tabs -->
+  <div class="tabs">
+    <button class="tab active" data-tab="dashboard" onclick="switchTab('dashboard')">Dashboard</button>
+    <button class="tab" data-tab="bills" onclick="switchTab('bills')">Tracked Bills</button>
+    <button class="tab" data-tab="search" onclick="switchTab('search')">Search</button>
   </div>
 
-  <!-- Tracked Bills Section -->
-  <div class="section">
+  <!-- Dashboard Tab -->
+  <div id="tab-dashboard" class="tab-content active">
+    <div id="dashboardContent">
+      <p class="empty">Loading dashboard...</p>
+    </div>
+  </div>
+
+  <!-- Bills Tab -->
+  <div id="tab-bills" class="tab-content">
     <div class="toolbar">
       <h2>Tracked Bills</h2>
       <button class="btn-check" onclick="triggerCheck()">Check Now</button>
     </div>
+
+    <!-- Filter Bar -->
+    <div class="filter-bar">
+      <label>Filter:</label>
+      <select id="filterState" onchange="loadBills()">
+        <option value="">All States</option>
+      </select>
+      <select id="filterStatus" onchange="loadBills()">
+        <option value="">All Statuses</option>
+        <option value="1">Introduced</option>
+        <option value="2">Engrossed</option>
+        <option value="3">Enrolled</option>
+        <option value="4">Passed</option>
+        <option value="5">Vetoed</option>
+        <option value="6">Failed</option>
+      </select>
+      <select id="filterPriority" onchange="loadBills()">
+        <option value="">All Priorities</option>
+        <option value="high">High</option>
+        <option value="medium">Medium</option>
+        <option value="low">Low</option>
+      </select>
+      <label>Sort:</label>
+      <select id="sortBy" onchange="loadBills()">
+        <option value="date">Last Activity</option>
+        <option value="priority">Priority</option>
+        <option value="state">State</option>
+        <option value="status">Status</option>
+        <option value="title">Title</option>
+      </select>
+      <select id="sortOrder" onchange="loadBills()">
+        <option value="desc">Newest First</option>
+        <option value="asc">Oldest First</option>
+      </select>
+    </div>
+
     <span class="spinner" id="checkSpinner">Checking bills...</span>
     <div id="trackedBills"></div>
+  </div>
+
+  <!-- Search Tab -->
+  <div id="tab-search" class="tab-content">
+    <div class="section">
+      <h2>Search Bills</h2>
+      <div class="search-bar">
+        <select id="stateSelect">
+          <option value="ALL">All States</option>
+        </select>
+        <input type="text" id="queryInput" placeholder="Search terms (e.g., artificial intelligence)" />
+        <button onclick="searchBills()">Search</button>
+        <span class="spinner" id="searchSpinner">Searching...</span>
+      </div>
+      <div id="searchSummary" class="search-summary"></div>
+      <div id="searchResults"></div>
+    </div>
   </div>
 
   <div id="notification" class="notification"></div>
@@ -188,25 +507,221 @@
       4: "Passed", 5: "Vetoed", 6: "Failed"
     };
 
-    // Populate state dropdown
-    const select = document.getElementById("stateSelect");
-    STATES.forEach(s => {
-      const opt = document.createElement("option");
-      opt.value = s;
-      opt.textContent = s;
-      select.appendChild(opt);
+    const TIMELINE_STEPS = [
+      { status: 1, label: "Introduced" },
+      { status: 2, label: "Engrossed" },
+      { status: 3, label: "Enrolled" },
+      { status: 4, label: "Passed" },
+    ];
+
+    // Populate dropdowns
+    [document.getElementById("stateSelect"), document.getElementById("filterState")].forEach(select => {
+      STATES.forEach(s => {
+        const opt = document.createElement("option");
+        opt.value = s;
+        opt.textContent = s;
+        select.appendChild(opt);
+      });
     });
 
-    // Allow Enter key to search
     document.getElementById("queryInput").addEventListener("keydown", e => {
       if (e.key === "Enter") searchBills();
     });
+
+    // --- Tab switching ---
+    function switchTab(tab) {
+      document.querySelectorAll(".tab").forEach(t => t.classList.remove("active"));
+      document.querySelectorAll(".tab-content").forEach(t => t.classList.remove("active"));
+      document.querySelector(`[data-tab="${tab}"]`).classList.add("active");
+      document.getElementById(`tab-${tab}`).classList.add("active");
+
+      if (tab === "dashboard") loadDashboard();
+      if (tab === "bills") loadBills();
+    }
 
     function notify(msg, type = "info") {
       const el = document.getElementById("notification");
       el.textContent = msg;
       el.className = `notification ${type} show`;
       setTimeout(() => el.classList.remove("show"), 3000);
+    }
+
+    // --- Dashboard ---
+    async function loadDashboard() {
+      const container = document.getElementById("dashboardContent");
+      try {
+        const resp = await fetch("/api/dashboard");
+        const data = await resp.json();
+
+        let html = "";
+
+        // Stat cards
+        html += '<div class="dashboard-grid">';
+        html += `<div class="stat-card"><div class="stat-number">${data.total_bills}</div><div class="stat-label">Bills Tracked</div></div>`;
+        html += `<div class="stat-card"><div class="stat-number" style="color:#dc2626">${data.by_priority.high}</div><div class="stat-label">High Priority</div></div>`;
+        html += `<div class="stat-card"><div class="stat-number" style="color:#d97706">${data.by_priority.medium}</div><div class="stat-label">Medium Priority</div></div>`;
+        html += `<div class="stat-card"><div class="stat-number" style="color:#16a34a">${data.by_priority.low}</div><div class="stat-label">Low Priority</div></div>`;
+        html += '</div>';
+
+        // Status breakdown
+        const statusEntries = Object.entries(data.by_status);
+        if (statusEntries.length > 0) {
+          html += '<div class="section"><h3>Bills by Status</h3>';
+          const maxCount = Math.max(...statusEntries.map(e => e[1]));
+          const statusColors = {
+            "Introduced": "#3b82f6", "Engrossed": "#8b5cf6", "Enrolled": "#f59e0b",
+            "Passed": "#16a34a", "Vetoed": "#ef4444", "Failed": "#6b7280"
+          };
+          statusEntries.forEach(([status, count]) => {
+            const pct = maxCount > 0 ? (count / maxCount) * 100 : 0;
+            const color = statusColors[status] || "#3b82f6";
+            html += `<div class="chart-bar-container">
+              <div class="chart-bar-label">${esc(status)}</div>
+              <div class="chart-bar-track">
+                <div class="chart-bar-fill" style="width:${Math.max(pct, 8)}%;background:${color}">${count}</div>
+              </div>
+            </div>`;
+          });
+          html += '</div>';
+        }
+
+        // State breakdown
+        const stateEntries = Object.entries(data.by_state);
+        if (stateEntries.length > 0) {
+          html += '<div class="section"><h3>Bills by State</h3>';
+          const maxState = Math.max(...stateEntries.map(e => e[1]));
+          stateEntries.sort((a, b) => b[1] - a[1]);
+          stateEntries.forEach(([state, count]) => {
+            const pct = maxState > 0 ? (count / maxState) * 100 : 0;
+            html += `<div class="chart-bar-container">
+              <div class="chart-bar-label">${esc(state)}</div>
+              <div class="chart-bar-track">
+                <div class="chart-bar-fill" style="width:${Math.max(pct, 8)}%;background:#2563eb">${count}</div>
+              </div>
+            </div>`;
+          });
+          html += '</div>';
+        }
+
+        // Session warnings
+        if (data.session_warnings.length > 0) {
+          html += '<div class="section"><h3>Session Warnings</h3>';
+          data.session_warnings.forEach(w => {
+            html += `<div class="warning-banner">
+              <div class="warning-title">${esc(w.state)} ${esc(w.bill_number)}: ${esc(w.title)}</div>
+              <div class="warning-text">${esc(w.warning)}</div>
+            </div>`;
+          });
+          html += '</div>';
+        }
+
+        // Upcoming hearings
+        if (data.upcoming_hearings.length > 0) {
+          html += '<div class="section"><h3>Upcoming Hearings</h3>';
+          data.upcoming_hearings.forEach(h => {
+            html += `<div class="hearing-item">
+              <span class="hearing-date">${esc(h.date)}</span>
+              <span>${esc(h.state)} ${esc(h.bill_number)}</span>
+              <span>${esc(h.description)}</span>
+              <span style="font-size:0.8rem;color:#888">${esc(h.location)}</span>
+            </div>`;
+          });
+          html += '</div>';
+        }
+
+        if (data.total_bills === 0) {
+          html = '<p class="empty">No bills tracked yet. Go to Search to find and track bills.</p>';
+        }
+
+        container.innerHTML = html;
+      } catch (e) {
+        container.innerHTML = '<p class="empty">Failed to load dashboard.</p>';
+      }
+    }
+
+    // --- Bill timeline ---
+    function renderTimeline(status) {
+      const isFailed = status === 6;
+      const isVetoed = status === 5;
+
+      let html = '<div class="timeline">';
+      TIMELINE_STEPS.forEach((step, i) => {
+        if (i > 0) {
+          const connReached = status >= step.status && !isFailed && !isVetoed ? "reached" : "";
+          html += `<div class="timeline-connector ${connReached}"></div>`;
+        }
+        let dotClass = "";
+        let labelClass = "";
+        if (isFailed && step.status === 1) {
+          dotClass = "failed";
+          labelClass = "active";
+        } else if (isVetoed && step.status <= 3) {
+          dotClass = step.status === 3 ? "vetoed" : "reached";
+          labelClass = step.status === 3 ? "active" : "";
+        } else if (status === step.status) {
+          dotClass = "current";
+          labelClass = "active";
+        } else if (status > step.status) {
+          dotClass = "reached";
+        }
+
+        html += `<div class="timeline-step">
+          <div class="timeline-dot ${dotClass}"></div>
+          <div class="timeline-label ${labelClass}">${step.label}</div>
+        </div>`;
+      });
+
+      // Add final status for vetoed/failed
+      if (isVetoed) {
+        html += `<div class="timeline-connector"></div>
+          <div class="timeline-step">
+            <div class="timeline-dot vetoed"></div>
+            <div class="timeline-label active">Vetoed</div>
+          </div>`;
+      }
+      if (isFailed) {
+        html += `<div class="timeline-connector"></div>
+          <div class="timeline-step">
+            <div class="timeline-dot failed"></div>
+            <div class="timeline-label active">Failed</div>
+          </div>`;
+      }
+
+      html += '</div>';
+      return html;
+    }
+
+    // --- Impact badge ---
+    function impactBadge(impact) {
+      if (!impact) return "";
+      const cls = {
+        "High": "badge-impact-high",
+        "Moderate": "badge-impact-moderate",
+        "Low": "badge-impact-low",
+        "Very Low": "badge-impact-very-low",
+        "Dead": "badge-impact-dead",
+      }[impact.label] || "badge-impact-low";
+      return `<span class="badge badge-impact ${cls}" title="${impact.factors.join('; ')}">${impact.score}% ${impact.label}</span>`;
+    }
+
+    // --- Priority badge ---
+    function priorityBadge(priority) {
+      const cls = `badge-priority-${priority}`;
+      const label = priority.charAt(0).toUpperCase() + priority.slice(1);
+      return `<span class="badge ${cls}">${label}</span>`;
+    }
+
+    // --- Session progress bar ---
+    function sessionBar(session) {
+      if (!session) return "";
+      const pct = session.pct_elapsed || 0;
+      const cls = pct >= 90 ? "danger" : pct >= 70 ? "warning" : "ok";
+      let text = `${session.session_name || "Session"}: ${pct}% elapsed`;
+      if (session.warning) text += ` — ${session.warning}`;
+      return `<div class="session-bar">
+        <div class="session-progress"><div class="session-progress-fill ${cls}" style="width:${pct}%"></div></div>
+        <div class="session-text">${esc(text)}</div>
+      </div>`;
     }
 
     // --- Search ---
@@ -251,7 +766,14 @@
                   Last action: ${esc(r.last_action_date || "N/A")} &mdash; ${esc((r.last_action || "").substring(0, 120))}
                 </div>
               </div>
-              <button class="btn-sm btn-track" onclick="trackBill(${r.bill_id})">Track</button>
+              <div class="card-actions">
+                <select class="priority-select" id="search-priority-${r.bill_id}">
+                  <option value="medium" selected>Medium</option>
+                  <option value="high">High</option>
+                  <option value="low">Low</option>
+                </select>
+                <button class="btn-sm btn-track" onclick="trackBill(${r.bill_id})">Track</button>
+              </div>
             </div>
           `;
           container.appendChild(card);
@@ -265,15 +787,17 @@
 
     // --- Track a bill ---
     async function trackBill(billId) {
+      const priorityEl = document.getElementById(`search-priority-${billId}`);
+      const priority = priorityEl ? priorityEl.value : "medium";
       try {
         const resp = await fetch("/api/bills", {
           method: "POST",
           headers: {"Content-Type": "application/json"},
-          body: JSON.stringify({bill_id: billId}),
+          body: JSON.stringify({bill_id: billId, priority: priority}),
         });
         const data = await resp.json();
         if (!resp.ok) throw new Error(data.error || "Failed to track bill");
-        notify(`Now tracking ${data.state} ${data.bill_number}`, "success");
+        notify(`Now tracking ${data.state} ${data.bill_number} (${priority} priority)`, "success");
         loadBills();
       } catch (e) {
         notify(e.message, "error");
@@ -292,15 +816,77 @@
       }
     }
 
+    // --- Change priority ---
+    async function changePriority(billId, priority) {
+      try {
+        const resp = await fetch(`/api/bills/${billId}/priority`, {
+          method: "PATCH",
+          headers: {"Content-Type": "application/json"},
+          body: JSON.stringify({priority: priority}),
+        });
+        if (!resp.ok) throw new Error("Failed to update priority");
+        notify(`Priority set to ${priority}`, "success");
+      } catch (e) {
+        notify(e.message, "error");
+      }
+    }
+
+    // --- Toggle bill details ---
+    function toggleDetails(billId) {
+      const el = document.getElementById(`details-${billId}`);
+      if (el) el.classList.toggle("open");
+    }
+
+    // --- Load related bills ---
+    async function loadRelated(billId) {
+      const container = document.getElementById(`related-${billId}`);
+      if (!container || container.dataset.loaded === "true") return;
+      container.innerHTML = '<span class="related-loading">Loading related bills...</span>';
+      container.dataset.loaded = "true";
+      try {
+        const resp = await fetch(`/api/bills/${billId}/related`);
+        const data = await resp.json();
+        if (!data.related || data.related.length === 0) {
+          container.innerHTML = '<span style="font-size:0.82rem;color:#888">No related bills found.</span>';
+          return;
+        }
+        container.innerHTML = data.related.map(r => `
+          <div class="related-card">
+            <span class="badge badge-state">${esc(r.state)}</span>
+            <strong>${esc(r.bill_number)}</strong>: ${esc(r.title)}
+            <div style="font-size:0.78rem;color:#888;margin-top:2px">
+              Last action: ${esc(r.last_action_date || "N/A")}
+              ${r.url ? ` | <a href="${esc(r.url)}" target="_blank">View</a>` : ""}
+            </div>
+          </div>
+        `).join("");
+      } catch {
+        container.innerHTML = '<span style="font-size:0.82rem;color:#dc2626">Failed to load related bills.</span>';
+      }
+    }
+
     // --- Load tracked bills ---
     async function loadBills() {
       try {
-        const resp = await fetch("/api/bills");
+        const params = new URLSearchParams();
+        const state = document.getElementById("filterState").value;
+        const status = document.getElementById("filterStatus").value;
+        const priority = document.getElementById("filterPriority").value;
+        const sort = document.getElementById("sortBy").value;
+        const order = document.getElementById("sortOrder").value;
+
+        if (state) params.set("state", state);
+        if (status) params.set("status", status);
+        if (priority) params.set("priority", priority);
+        params.set("sort", sort);
+        params.set("order", order);
+
+        const resp = await fetch(`/api/bills?${params}`);
         const bills = await resp.json();
         const container = document.getElementById("trackedBills");
 
         if (bills.length === 0) {
-          container.innerHTML = '<p class="empty">No bills tracked yet. Use the search above to find and track bills.</p>';
+          container.innerHTML = '<p class="empty">No bills match the current filters. Use the Search tab to find and track bills.</p>';
           return;
         }
 
@@ -308,22 +894,92 @@
         bills.forEach(b => {
           const card = document.createElement("div");
           card.className = "card";
+
+          // Sponsors summary
+          const sponsorCount = (b.sponsors || []).length;
+          const primarySponsor = (b.sponsors || []).find(s => s.sponsor_type === "Primary" || s.sponsor_type === 1);
+          const sponsorText = primarySponsor ? `${primarySponsor.name}${sponsorCount > 1 ? ` +${sponsorCount - 1} more` : ""}` : `${sponsorCount} sponsor(s)`;
+
+          // Calendar
+          const today = new Date().toISOString().split("T")[0];
+          const upcomingEvents = (b.calendar || []).filter(c => c.date >= today);
+
           card.innerHTML = `
             <div class="card-header">
-              <div>
+              <div style="flex:1">
                 <div class="card-title">
                   <span class="badge badge-state">${esc(b.state)}</span>
                   <span class="badge badge-status">${esc(b.status_text || STATUS_CODES[b.status] || "Unknown")}</span>
+                  ${priorityBadge(b.priority)}
+                  ${impactBadge(b.impact)}
                   ${esc(b.bill_number)}: ${esc(b.title)}
                 </div>
+                ${renderTimeline(b.status)}
                 <div class="card-meta">
                   Last action: ${esc(b.last_history_date || "N/A")} &mdash; ${esc((b.last_history_action || "").substring(0, 120))}
+                  ${b.committee ? `<br/>Committee: ${esc(b.committee)}` : ""}
+                  <br/>Sponsors: ${esc(sponsorText)}
+                  ${upcomingEvents.length > 0 ? `<br/><strong style="color:#7c3aed">Next hearing: ${esc(upcomingEvents[0].date)} — ${esc(upcomingEvents[0].description)}</strong>` : ""}
                   <br/>
                   ${b.url ? `<a href="${esc(b.url)}" target="_blank">LegiScan</a>` : ""}
                   ${b.state_link ? ` | <a href="${esc(b.state_link)}" target="_blank">Official</a>` : ""}
                 </div>
+                ${sessionBar(b.session_status)}
               </div>
-              <button class="btn-sm btn-remove" onclick="removeBill(${b.bill_id})">Remove</button>
+              <div class="card-actions">
+                <select class="priority-select" onchange="changePriority(${b.bill_id}, this.value)" title="Set priority">
+                  <option value="high" ${b.priority === "high" ? "selected" : ""}>High</option>
+                  <option value="medium" ${b.priority === "medium" ? "selected" : ""}>Medium</option>
+                  <option value="low" ${b.priority === "low" ? "selected" : ""}>Low</option>
+                </select>
+                <button class="btn-expand" onclick="toggleDetails(${b.bill_id})">Details</button>
+                <button class="btn-sm btn-remove" onclick="removeBill(${b.bill_id})">Remove</button>
+              </div>
+            </div>
+
+            <div class="card-details" id="details-${b.bill_id}">
+              ${b.description ? `<div class="detail-section"><h4>Description</h4><p style="font-size:0.85rem;color:#555">${esc(b.description)}</p></div>` : ""}
+
+              ${(b.sponsors || []).length > 0 ? `
+                <div class="detail-section">
+                  <h4>Sponsors (${b.sponsors.length})</h4>
+                  <ul>
+                    ${b.sponsors.map(s => `<li>${esc(s.name)}${s.party ? ` (${esc(s.party)})` : ""}${s.sponsor_type ? ` — ${esc(String(s.sponsor_type))}` : ""}</li>`).join("")}
+                  </ul>
+                </div>
+              ` : ""}
+
+              ${(b.calendar || []).length > 0 ? `
+                <div class="detail-section">
+                  <h4>Calendar / Hearings</h4>
+                  <ul>
+                    ${b.calendar.map(c => `<li><strong>${esc(c.date)}</strong>: ${esc(c.description)}${c.location ? ` (${esc(c.location)})` : ""}</li>`).join("")}
+                  </ul>
+                </div>
+              ` : ""}
+
+              ${(b.subjects || []).length > 0 ? `
+                <div class="detail-section">
+                  <h4>Subjects</h4>
+                  <div>${b.subjects.map(s => `<span class="badge" style="background:#f3f4f6;color:#374151;margin:2px">${esc(s)}</span>`).join(" ")}</div>
+                </div>
+              ` : ""}
+
+              ${b.impact ? `
+                <div class="detail-section">
+                  <h4>Impact Score: ${b.impact.score}/100 (${esc(b.impact.label)})</h4>
+                  <ul>
+                    ${b.impact.factors.map(f => `<li>${esc(f)}</li>`).join("")}
+                  </ul>
+                </div>
+              ` : ""}
+
+              <div class="detail-section">
+                <h4>Related Bills</h4>
+                <div id="related-${b.bill_id}">
+                  <button class="btn-expand" onclick="loadRelated(${b.bill_id})">Find related bills</button>
+                </div>
+              </div>
             </div>
           `;
           container.appendChild(card);
@@ -355,14 +1011,14 @@
 
     // Escape HTML
     function esc(s) {
-      if (!s) return "";
+      if (s === null || s === undefined) return "";
       const el = document.createElement("span");
       el.textContent = String(s);
       return el.innerHTML;
     }
 
     // Load on startup
-    loadBills();
+    loadDashboard();
   </script>
 </body>
 </html>
