@@ -133,13 +133,135 @@ Each bill gets a 0–100 score estimating its likelihood of becoming law, comput
 | Policy Context | 8 | Solar keyword breadth, energy-related subjects, high-interest topics |
 | Bill Structure | 5 | Chamber of origin, scope focus, bill type, amendments to existing law |
 
+### Dimension scoring details
+
+#### 1. Procedural Progress (0–30 pts)
+
+The single strongest predictor. Rather than treating all "Introduced" bills the same, this dimension uses LegiScan progress event codes to differentiate within status=1:
+
+| Bill Stage | Points | How it's detected |
+|------------|--------|-------------------|
+| Introduced, no committee action | 3 | status=1, no progress events 9/10/11 |
+| Referred to committee | 8 | progress event 9 (Committee Referral) |
+| Committee reported favorably | 16 | progress event 10 (Committee Report Pass) |
+| Committee reported Do Not Pass | 0 | progress event 11 (Committee Report DNP) |
+| Engrossed (passed origin chamber) | 22 | status=2 |
+| Enrolled (passed both chambers) | 27 | status=3 |
+| Passed / Signed | 30 | status=4 |
+
+#### 2. Sponsor Strength (0–20 pts)
+
+Measures sponsor *quality*, not just headcount:
+
+| Signal | Points |
+|--------|--------|
+| Has a primary sponsor | +2 |
+| Multiple primary sponsors | +2 |
+| 2–4 co-sponsors | +2 |
+| 5–9 co-sponsors | +4 |
+| 10+ co-sponsors | +6 |
+| Sponsors from both chambers (Rep + Sen) | +3 |
+| Has Joint Sponsor type | +3 |
+
+Capped at 20. A bill with a single sponsor and no co-sponsors scores 2; a bill with 12 bipartisan co-sponsors from both chambers can hit 16+.
+
+#### 3. Bipartisan Coalition (0–12 pts)
+
+Scales by the *depth* of minority party support, not just whether it exists:
+
+| Pattern | Points |
+|---------|--------|
+| Single party only | 0 |
+| Two parties, 1 minority co-sponsor | 4 |
+| Two parties, 2 minority co-sponsors | 6 |
+| Two parties, 3+ minority co-sponsors | 8 |
+| Three or more parties represented | 12 |
+
+This distinguishes a genuine bipartisan coalition from a token single co-sponsor from across the aisle.
+
+#### 4. Momentum & Velocity (0–15 pts)
+
+Measures whether the bill is actively moving, and how fast:
+
+| Signal | Points |
+|--------|--------|
+| **Recency**: last action ≤7 days ago | +5 |
+| **Recency**: last action 8–30 days ago | +3 |
+| **Recency**: last action 31–60 days ago | +1 |
+| **Recency**: no action in 90+ days | −3 |
+| **Velocity**: avg <14 days between milestones | +4 |
+| **Velocity**: avg 14–44 days between milestones | +2 |
+| **Upcoming**: has future calendar events (hearings/votes) | +3 |
+| **Density**: 3+ history actions in last 30 days | +3 |
+| **Density**: 1–2 history actions in last 30 days | +1 |
+
+A bill with a hearing scheduled next week and 4 actions in the last month scores high here; a bill with no activity since last year gets penalized.
+
+#### 5. Session Timing (0–10 pts)
+
+Cross-references the bill's progress stage with where the legislative session currently stands. This is a matrix, not a simple check:
+
+| Session elapsed | Bill through committee+ | Bill in committee | Bill just introduced |
+|----------------|------------------------|-------------------|---------------------|
+| <25% (early) | 10 | 7 | 7 |
+| 25–50% | 8 | 6 | 4 |
+| 50–75% | 6–8 | 2 | 1 |
+| >75% (late) | 5–7 | 2 | 0 |
+
+Session end is estimated as Dec 31 of the session's `year_end` (real sine die dates vary by state).
+
+**Session decay multiplier:** If a bill is still at status=1, has not cleared committee, and the session is >70% elapsed, the *entire raw score* is halved (×0.5). This prevents well-sponsored but effectively dead bills from showing misleadingly high scores.
+
+#### 6. Policy Context (0–8 pts)
+
+Solar-specific signals for the solar energy developer audience:
+
+| Signal | Points |
+|--------|--------|
+| Solar keywords found in 3+ categories | +4 |
+| Solar keywords found in 1–2 categories | +2 |
+| Keywords in high-interest categories (Net Metering, Incentives) | +2 |
+| Subject tags include energy/utility/renewable terms | +2 |
+
+Categories are from the solar keyword analysis: Solar Technology, Net Metering & Interconnection, Incentives & Finance, Permitting & Siting, Storage & Grid, Renewable Standards, Utility & Rate Design.
+
+#### 7. Bill Structure (0–5 pts)
+
+Structural characteristics that correlate with passage rates:
+
+| Signal | Points |
+|--------|--------|
+| Originates in Senate (SB, S prefix) | +1 |
+| Resolution type (SJR, HJR, etc.) | +1 |
+| Focused scope (1–2 subject tags) | +2 |
+| Amends existing law (description contains "amend", "relating to", etc.) | +1 |
+
+### Labels, confidence, and risk
+
 **Labels:** Very Likely (75+), Likely (55–74), Possible (35–54), Unlikely (15–34), Very Unlikely (0–14), Dead (vetoed/failed), Passed.
 
 **Session decay:** Bills stalled in committee with session >70% elapsed have their score halved.
 
 **Confidence rating:** Based on data completeness — high, medium, or low. Low-confidence scores show a disclaimer.
 
-**Risk callouts:** Explicit warnings like "No bipartisan support", "Still in committee at 65% session elapsed", "Inactive 90+ days".
+| Data present | Completeness points |
+|-------------|-------------------|
+| Sponsors | +1 |
+| History | +1 |
+| Progress details | +1 |
+| Session year end | +1 |
+| Calendar events | +0.5 |
+| Solar keywords | +0.5 |
+
+High = 4+, Medium = 2–3, Low = 0–1.
+
+**Risk callouts** are generated when specific warning conditions are met:
+- No bipartisan support (bipartisan dimension = 0)
+- Still in committee past session midpoint (>50% elapsed)
+- No legislative activity in 90+ days
+- Only 1 sponsor (limited coalition)
+- Committee reported Do Not Pass
+- No upcoming hearings or votes scheduled (while session is active)
 
 ## Project structure
 
