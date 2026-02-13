@@ -2,14 +2,14 @@
 
 ## Project Overview
 
-State-level legislation tracking system for **solar energy developers**. Built with Python/Flask backend and vanilla JS frontend. Uses LegiScan API for bill data, Anthropic Claude API for AI summaries, and GitHub Actions for automated daily checks with email alerts.
+State-level legislation tracking system for **solar energy developers**. Built with Python/Flask backend and vanilla JS frontend. Uses LegiScan API for bill data and GitHub Actions for automated daily checks with email alerts.
 
 ## Architecture
 
 - **Backend**: Flask REST API (`src/legislator/`)
 - **Frontend**: Single-page HTML/JS app (`src/legislator/static/index.html`)
 - **Data**: JSON file storage (`data/tracked_bills.json`)
-- **External APIs**: LegiScan (bill data), Anthropic (AI summaries)
+- **External APIs**: LegiScan (bill data)
 - **CI/CD**: GitHub Actions for twice-daily bill checks
 
 ## Key Files
@@ -19,7 +19,6 @@ State-level legislation tracking system for **solar energy developers**. Built w
 | `src/legislator/app.py` | Flask routes and API endpoints |
 | `src/legislator/api.py` | LegiScan API client |
 | `src/legislator/checker.py` | Data models (`TrackedBill`, `BillChange`), change detection, sponsor/calendar extraction |
-| `src/legislator/summarizer.py` | Claude-powered bill summarization for solar developers |
 | `src/legislator/scoring.py` | Impact scoring (0-100) and session calendar awareness |
 | `src/legislator/related.py` | Cross-state related bill discovery |
 | `src/legislator/emailer.py` | Email alert formatting and sending |
@@ -30,7 +29,7 @@ State-level legislation tracking system for **solar energy developers**. Built w
 ## Data Flow
 
 1. User searches bills via UI → `/api/search` → LegiScan `search` API
-2. User clicks Track → `/api/bills` POST → LegiScan `getBill` → extract sponsors/calendar/subjects → generate AI summary → save to JSON
+2. User clicks Track → `/api/bills` POST → LegiScan `getBill` → extract sponsors/calendar/subjects → save to JSON
 3. Bill list loads → `/api/bills` GET → reads JSON → enriches with impact score, session status, milestones
 4. GitHub Actions / manual check → `/api/check` POST → `check_all_bills()` → compares `change_hash` → detects changes → sends email alerts
 
@@ -39,7 +38,6 @@ State-level legislation tracking system for **solar energy developers**. Built w
 | Variable | Required | Purpose |
 |----------|----------|---------|
 | `LEGISCAN_API_KEY` | Yes | LegiScan API access |
-| `ANTHROPIC_API_KEY` | No (optional) | AI bill summaries for solar developers |
 | `SMTP_HOST` | For email | SMTP server (default: smtp.gmail.com) |
 | `SMTP_PORT` | For email | SMTP port (default: 587) |
 | `SMTP_USER` | For email | SMTP login |
@@ -50,20 +48,17 @@ State-level legislation tracking system for **solar energy developers**. Built w
 ## Known Issues & Gotchas
 
 ### LegiScan API Sponsor Data
-The LegiScan API returns sponsor fields inconsistently across different bills/states:
-- `party` vs `party_id` (sometimes abbreviation "R"/"D", sometimes full name)
-- `sponsor_type_id` (numeric: 1=Primary, 2=Co-Sponsor) vs `sponsor_type` (string)
-- `role_id` (numeric: 1=Sen, 2=Rep) vs `role` (string)
-- `name` may be missing; fall back to `first_name`/`middle_name`/`last_name`
+The LegiScan API returns sponsor data with specific field conventions (from the [API User Manual](https://api.legiscan.com/dl/LegiScan_API_User_Manual.pdf)):
+
+**Field mappings (per the LegiScan API):**
+- `party_id` (int): 1=Democrat, 2=Republican, 3=Independent, 4=Green, 5=Libertarian, 6=Nonpartisan
+- `party` (str): Short abbreviation like "D", "R", "I"
+- `sponsor_type_id` (int): 0=Sponsor, 1=Primary Sponsor, 2=Co-Sponsor, 3=Joint Sponsor
+- `role_id` (int): 1=Representative, 2=Senator, 3=Joint Conference
+- `name` (str): Full name; if missing fall back to `first_name`/`middle_name`/`last_name`
 - Sponsors array may be a dict with numeric keys or `{"sponsor": [...]}` wrapper
 
-The `_extract_sponsors()` function in `checker.py` handles all these variants. If sponsors still show as 0, use the **Refresh** button on the bill card to force re-fetch from LegiScan.
-
-### Solar Summary Caching
-- Summaries are generated once when a bill is first tracked (if `ANTHROPIC_API_KEY` is set)
-- Stored in `solar_summary` field of `TrackedBill` → persisted in `tracked_bills.json`
-- NOT regenerated on `check_bill` (preserved across updates)
-- Can be manually regenerated via "Generate AI Summary" button or `/api/bills/<id>/summarize` endpoint
+The `_extract_sponsors()` function in `checker.py` handles all these variants. If sponsors still show incorrectly, use the **Refresh** button on the bill card to force re-fetch from LegiScan.
 
 ### Change Detection
 - Uses `change_hash` from LegiScan — only re-fetches when hash changes
@@ -74,7 +69,6 @@ The `_extract_sponsors()` function in `checker.py` handles all these variants. I
 
 ```bash
 export LEGISCAN_API_KEY=your_key
-export ANTHROPIC_API_KEY=your_key  # optional, for AI summaries
 PYTHONPATH=src python -m legislator
 ```
 
@@ -86,7 +80,7 @@ No test suite currently exists. Test manually by:
 1. Starting the server
 2. Searching for bills (e.g., state=CA, query="solar")
 3. Tracking a bill and verifying sponsors appear
-4. Checking the details panel for milestones and solar summary
+4. Checking the details panel for milestones
 5. Using the Refresh button to re-fetch data
 
 ## Conventions
@@ -95,7 +89,6 @@ No test suite currently exists. Test manually by:
 - Data models and extraction functions are in `checker.py`
 - The frontend is a single HTML file with embedded CSS and JS
 - Bill data enrichment (impact score, milestones, session status) happens at the API layer, not stored in JSON
-- `solar_summary` is the exception — it IS stored because it's expensive to generate
 
 ## When Making Changes
 
