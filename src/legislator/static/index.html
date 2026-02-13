@@ -831,6 +831,20 @@
       }
     }
 
+    // --- Refresh a bill from LegiScan ---
+    async function refreshBill(billId) {
+      try {
+        notify("Refreshing bill data...", "info");
+        const resp = await fetch(`/api/bills/${billId}/refresh`, {method: "POST"});
+        const data = await resp.json();
+        if (!resp.ok) throw new Error(data.error || "Failed to refresh bill");
+        notify(`Refreshed ${data.state} ${data.bill_number} — ${(data.sponsors || []).length} sponsor(s)`, "success");
+        loadBills();
+      } catch (e) {
+        notify(e.message, "error");
+      }
+    }
+
     // --- Toggle bill details ---
     function toggleDetails(billId) {
       const el = document.getElementById(`details-${billId}`);
@@ -949,6 +963,7 @@
                   <option value="low" ${b.priority === "low" ? "selected" : ""}>Low</option>
                 </select>
                 <button class="btn-expand" onclick="toggleDetails(${b.bill_id})">Details</button>
+                <button class="btn-sm" onclick="refreshBill(${b.bill_id})" title="Re-fetch data from LegiScan">Refresh</button>
                 <button class="btn-sm btn-remove" onclick="removeBill(${b.bill_id})">Remove</button>
               </div>
             </div>

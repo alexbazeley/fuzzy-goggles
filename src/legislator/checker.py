@@ -160,8 +160,13 @@ def _extract_sponsors(bill_data: dict) -> list[dict]:
     """
     sponsors_raw = bill_data.get("sponsors", [])
     if isinstance(sponsors_raw, dict):
-        # Some API responses wrap sponsors in a dict with numeric keys
-        sponsors_raw = list(sponsors_raw.values())
+        # Some API responses wrap sponsors in {"sponsor": [...]} or {0: {...}, 1: {...}}
+        if "sponsor" in sponsors_raw:
+            sponsors_raw = sponsors_raw["sponsor"]
+            if isinstance(sponsors_raw, dict):
+                sponsors_raw = [sponsors_raw]  # Single sponsor wrapped in dict
+        else:
+            sponsors_raw = list(sponsors_raw.values())
     sponsors = []
     for s in sponsors_raw:
         if not isinstance(s, dict):
