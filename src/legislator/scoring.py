@@ -269,42 +269,6 @@ def _score_timing(bill: TrackedBill) -> DimensionResult:
     return DimensionResult(pts, MAX, f"{detail} ({pct:.0f}% elapsed) (+{pts})")
 
 
-def _score_context(bill: TrackedBill) -> DimensionResult:
-    """0-8 points based on solar policy context signals."""
-    MAX = 8
-    points = 0
-    details = []
-
-    # Solar keyword category breadth
-    if bill.solar_keywords:
-        categories = {kw.split(":")[0].strip() for kw in bill.solar_keywords if ":" in kw}
-        n_cats = len(categories)
-        if n_cats >= 3:
-            points += 4
-            details.append(f"{n_cats} solar categories")
-        elif n_cats >= 1:
-            points += 2
-            details.append(f"{n_cats} solar category")
-
-        # High-interest categories bonus
-        high_interest = {"Net Metering & Interconnection", "Incentives & Finance"}
-        if categories & high_interest:
-            points += 2
-            details.append("high-interest topics")
-
-    # Subject tags with energy relevance
-    energy_terms = {"energy", "utility", "utilities", "electric", "renewable",
-                    "solar", "environment", "power", "grid"}
-    if bill.subjects:
-        subject_text = " ".join(bill.subjects).lower()
-        if any(term in subject_text for term in energy_terms):
-            points += 2
-            details.append("energy-related subjects")
-
-    points = min(points, MAX)
-    return DimensionResult(points, MAX, "; ".join(details) + f" (+{points})" if details else f"No context signals (+{points})")
-
-
 def _score_structure(bill: TrackedBill) -> DimensionResult:
     """0-5 points based on bill structural characteristics."""
     MAX = 5
@@ -355,10 +319,8 @@ def _compute_confidence(bill: TrackedBill) -> str:
         completeness += 1
     if bill.calendar:
         completeness += 0.5
-    if bill.solar_keywords:
-        completeness += 0.5
 
-    if completeness >= 4:
+    if completeness >= 3.5:
         return "high"
     if completeness >= 2:
         return "medium"
@@ -435,7 +397,6 @@ def compute_passage_likelihood(bill: TrackedBill) -> dict:
     dim_bipartisan = _score_bipartisan(bill)
     dim_momentum = _score_momentum(bill)
     dim_timing = _score_timing(bill)
-    dim_context = _score_context(bill)
     dim_structure = _score_structure(bill)
 
     dims = {
@@ -444,7 +405,6 @@ def compute_passage_likelihood(bill: TrackedBill) -> dict:
         "bipartisan": dim_bipartisan,
         "momentum": dim_momentum,
         "timing": dim_timing,
-        "context": dim_context,
         "structure": dim_structure,
     }
 
@@ -462,7 +422,8 @@ def compute_passage_likelihood(bill: TrackedBill) -> dict:
     if stalled_late:
         raw_score = int(raw_score * 0.5)
 
-    score = max(0, min(100, raw_score))
+    # Normalize to 0-100 scale (max raw is 92)
+    score = max(0, min(100, round(raw_score * 100 / 92)))
 
     # Label
     if score >= 75:

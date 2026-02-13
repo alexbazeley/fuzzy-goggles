@@ -130,8 +130,9 @@ Each bill gets a 0–100 score estimating its likelihood of becoming law, comput
 | Bipartisan Coalition | 12 | Cross-party support depth (not just presence) |
 | Momentum & Velocity | 15 | Recency of activity, speed between milestones, upcoming hearings, action density |
 | Session Timing | 10 | Bill progress vs. session timeline (stalled bills late in session are penalized) |
-| Policy Context | 8 | Solar keyword breadth, energy-related subjects, high-interest topics |
 | Bill Structure | 5 | Chamber of origin, scope focus, bill type, amendments to existing law |
+
+Raw scores (max 92) are normalized to a 0–100 scale.
 
 ### Dimension scoring details
 
@@ -212,20 +213,7 @@ Session end is estimated as Dec 31 of the session's `year_end` (real sine die da
 
 **Session decay multiplier:** If a bill is still at status=1, has not cleared committee, and the session is >70% elapsed, the *entire raw score* is halved (×0.5). This prevents well-sponsored but effectively dead bills from showing misleadingly high scores.
 
-#### 6. Policy Context (0–8 pts)
-
-Solar-specific signals for the solar energy developer audience:
-
-| Signal | Points |
-|--------|--------|
-| Solar keywords found in 3+ categories | +4 |
-| Solar keywords found in 1–2 categories | +2 |
-| Keywords in high-interest categories (Net Metering, Incentives) | +2 |
-| Subject tags include energy/utility/renewable terms | +2 |
-
-Categories are from the solar keyword analysis: Solar Technology, Net Metering & Interconnection, Incentives & Finance, Permitting & Siting, Storage & Grid, Renewable Standards, Utility & Rate Design.
-
-#### 7. Bill Structure (0–5 pts)
+#### 6. Bill Structure (0–5 pts)
 
 Structural characteristics that correlate with passage rates:
 
@@ -251,9 +239,8 @@ Structural characteristics that correlate with passage rates:
 | Progress details | +1 |
 | Session year end | +1 |
 | Calendar events | +0.5 |
-| Solar keywords | +0.5 |
 
-High = 4+, Medium = 2–3, Low = 0–1.
+High = 3.5+, Medium = 2–3, Low = 0–1.
 
 **Risk callouts** are generated when specific warning conditions are met:
 - No bipartisan support (bipartisan dimension = 0)
