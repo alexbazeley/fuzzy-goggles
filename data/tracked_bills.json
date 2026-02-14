@@ -13,7 +13,21 @@
     "progress_events": [
       1,
       9
-    ]
+    ],
+    "progress_details": [],
+    "priority": "medium",
+    "sponsors": [],
+    "calendar": [],
+    "session_id": 0,
+    "session_name": "",
+    "session_year_start": 0,
+    "session_year_end": 0,
+    "description": "",
+    "subjects": [],
+    "committee": "",
+    "committee_id": 0,
+    "history": [],
+    "solar_keywords": null
   },
   {
     "bill_id": 1990048,
@@ -30,7 +44,21 @@
       1,
       9,
       9
-    ]
+    ],
+    "progress_details": [],
+    "priority": "medium",
+    "sponsors": [],
+    "calendar": [],
+    "session_id": 0,
+    "session_name": "",
+    "session_year_start": 0,
+    "session_year_end": 0,
+    "description": "",
+    "subjects": [],
+    "committee": "",
+    "committee_id": 0,
+    "history": [],
+    "solar_keywords": null
   },
   {
     "bill_id": 2047380,
@@ -46,7 +74,21 @@
     "progress_events": [
       1,
       9
-    ]
+    ],
+    "progress_details": [],
+    "priority": "medium",
+    "sponsors": [],
+    "calendar": [],
+    "session_id": 0,
+    "session_name": "",
+    "session_year_start": 0,
+    "session_year_end": 0,
+    "description": "",
+    "subjects": [],
+    "committee": "",
+    "committee_id": 0,
+    "history": [],
+    "solar_keywords": null
   },
   {
     "bill_id": 2046095,
@@ -63,7 +105,21 @@
       1,
       9,
       9
-    ]
+    ],
+    "progress_details": [],
+    "priority": "medium",
+    "sponsors": [],
+    "calendar": [],
+    "session_id": 0,
+    "session_name": "",
+    "session_year_start": 0,
+    "session_year_end": 0,
+    "description": "",
+    "subjects": [],
+    "committee": "",
+    "committee_id": 0,
+    "history": [],
+    "solar_keywords": null
   },
   {
     "bill_id": 2033936,
@@ -80,7 +136,21 @@
       1,
       10,
       2
-    ]
+    ],
+    "progress_details": [],
+    "priority": "medium",
+    "sponsors": [],
+    "calendar": [],
+    "session_id": 0,
+    "session_name": "",
+    "session_year_start": 0,
+    "session_year_end": 0,
+    "description": "",
+    "subjects": [],
+    "committee": "",
+    "committee_id": 0,
+    "history": [],
+    "solar_keywords": null
   },
   {
     "bill_id": 2043239,
@@ -96,7 +166,21 @@
     "progress_events": [
       1,
       9
-    ]
+    ],
+    "progress_details": [],
+    "priority": "medium",
+    "sponsors": [],
+    "calendar": [],
+    "session_id": 0,
+    "session_name": "",
+    "session_year_start": 0,
+    "session_year_end": 0,
+    "description": "",
+    "subjects": [],
+    "committee": "",
+    "committee_id": 0,
+    "history": [],
+    "solar_keywords": null
   },
   {
     "bill_id": 2043201,
@@ -112,7 +196,21 @@
     "progress_events": [
       1,
       9
-    ]
+    ],
+    "progress_details": [],
+    "priority": "medium",
+    "sponsors": [],
+    "calendar": [],
+    "session_id": 0,
+    "session_name": "",
+    "session_year_start": 0,
+    "session_year_end": 0,
+    "description": "",
+    "subjects": [],
+    "committee": "",
+    "committee_id": 0,
+    "history": [],
+    "solar_keywords": null
   },
   {
     "bill_id": 1965388,
@@ -128,7 +226,21 @@
     "progress_events": [
       1,
       9
-    ]
+    ],
+    "progress_details": [],
+    "priority": "medium",
+    "sponsors": [],
+    "calendar": [],
+    "session_id": 0,
+    "session_name": "",
+    "session_year_start": 0,
+    "session_year_end": 0,
+    "description": "",
+    "subjects": [],
+    "committee": "",
+    "committee_id": 0,
+    "history": [],
+    "solar_keywords": null
   },
   {
     "bill_id": 1969228,
@@ -144,7 +256,21 @@
     "progress_events": [
       1,
       9
-    ]
+    ],
+    "progress_details": [],
+    "priority": "medium",
+    "sponsors": [],
+    "calendar": [],
+    "session_id": 0,
+    "session_name": "",
+    "session_year_start": 0,
+    "session_year_end": 0,
+    "description": "",
+    "subjects": [],
+    "committee": "",
+    "committee_id": 0,
+    "history": [],
+    "solar_keywords": null
   },
   {
     "bill_id": 2036624,
@@ -162,6 +288,20 @@
       9,
       9,
       9
-    ]
+    ],
+    "progress_details": [],
+    "priority": "medium",
+    "sponsors": [],
+    "calendar": [],
+    "session_id": 0,
+    "session_name": "",
+    "session_year_start": 0,
+    "session_year_end": 0,
+    "description": "",
+    "subjects": [],
+    "committee": "",
+    "committee_id": 0,
+    "history": [],
+    "solar_keywords": null
   }
 ]
