@@ -2,6 +2,13 @@
 
 Loads weights from weights.json and scores TrackedBill instances.
 No external ML dependencies — just multiplication and sigmoid.
+
+v2 changes:
+  - Supports v2 weights format (threshold, state_passage_rates, etc.)
+  - Falls back gracefully to v1 format
+  - Uses optimal threshold from training instead of fixed 0.5
+  - Passes state_passage_rate to feature extraction
+  - Updated display names for new/removed features
 """
 
 import json
@@ -51,6 +58,7 @@ def predict_passage(bill) -> Optional[dict]:
       - feature_contributions: dict mapping feature names to their
         contribution to the score (weight * normalized_value)
       - model_metrics: dict with test set performance info
+      - model_version: int (1 or 2)
 
     Returns None if no trained model is available.
     """
@@ -58,17 +66,30 @@ def predict_passage(bill) -> Optional[dict]:
     if model is None:
         return None
 
+    version = model.get("version", 1)
     weights = model["weights"]
     bias = model["bias"]
     means = model["means"]
     stds = model["stds"]
+    threshold = model.get("threshold", 0.5)
+    feature_names = model.get("feature_names", FEATURE_NAMES)
+
+    # Get state passage rate for this bill's state (v2 only)
+    state_passage_rate = 0.0
+    if version >= 2:
+        state_rates = model.get("state_passage_rates", {})
+        bill_state = getattr(bill, "state", "")
+        if bill_state:
+            state_passage_rate = state_rates.get(bill_state.upper(), 0.0)
 
     # Extract raw features
-    raw_features = extract_from_tracked_bill(bill)
+    raw_features = extract_from_tracked_bill(
+        bill, state_passage_rate=state_passage_rate
+    )
 
     # Normalize using training statistics
     normalized = []
-    for i, name in enumerate(FEATURE_NAMES):
+    for i, name in enumerate(feature_names):
         val = raw_features.get(name, 0.0)
         norm_val = (val - means[i]) / stds[i] if stds[i] != 0 else 0.0
         normalized.append(norm_val)
@@ -80,7 +101,7 @@ def predict_passage(bill) -> Optional[dict]:
 
     # Compute per-feature contributions
     contributions = {}
-    for i, name in enumerate(FEATURE_NAMES):
+    for i, name in enumerate(feature_names):
         contrib = weights[i] * normalized[i]
         contributions[name] = round(contrib, 4)
 
@@ -89,14 +110,15 @@ def predict_passage(bill) -> Optional[dict]:
         contributions.items(), key=lambda x: abs(x[1]), reverse=True
     ))
 
-    # Label
-    if score >= 75:
+    # Label based on threshold-adjusted score
+    # Map probability relative to threshold into label buckets
+    if probability >= threshold + 0.25:
         label = "Very Likely"
-    elif score >= 55:
+    elif probability >= threshold + 0.05:
         label = "Likely"
-    elif score >= 35:
+    elif probability >= threshold - 0.15:
         label = "Possible"
-    elif score >= 15:
+    elif probability >= threshold - 0.35:
         label = "Unlikely"
     else:
         label = "Very Unlikely"
@@ -106,9 +128,13 @@ def predict_passage(bill) -> Optional[dict]:
         "score": score,
         "label": label,
         "feature_contributions": sorted_contributions,
-        "raw_features": {name: raw_features[name] for name in FEATURE_NAMES},
+        "raw_features": {name: raw_features.get(name, 0.0)
+                         for name in feature_names},
         "model_metrics": model.get("metrics", {}),
+        "cv_metrics": model.get("cv_metrics", {}),
         "trained_at": model.get("trained_at", "unknown"),
+        "model_version": version,
+        "threshold": threshold,
     }
 
 
@@ -130,6 +156,7 @@ def get_top_factors(prediction: dict, top_n: int = 5) -> list[dict]:
         "cosponsor_count": "Co-sponsors",
         "is_bipartisan": "Bipartisan support",
         "minority_party_sponsors": "Cross-party sponsors",
+        "sponsor_party_majority": "Majority party alignment",
         "senate_origin": "Senate origin",
         "is_resolution": "Resolution type",
         "num_subjects": "Subject tags",
@@ -137,16 +164,26 @@ def get_top_factors(prediction: dict, top_n: int = 5) -> list[dict]:
         "amends_existing_law": "Amends existing law",
         "committee_referral": "Committee referral",
         "committee_passage": "Cleared committee",
-        "passed_one_chamber": "Passed a chamber",
         "num_actions": "Legislative actions",
+        "early_action_count": "Early momentum (30d)",
         "days_since_introduction": "Days active",
         "session_pct_at_intro": "Introduction timing",
-        "has_companion": "Has companion bill",
         "action_density_30d": "Recent activity (30d)",
+        "title_length": "Title complexity",
+        "has_fiscal_note": "Fiscal impact",
+        "solar_category_count": "Solar policy categories",
+        "has_solar_keywords": "Solar relevance",
+        "state_passage_rate": "State passage rate",
     }
+    # Text hash features get a generic name
+    for i in range(50):
+        display_names[f"text_hash_{i}"] = f"Text signal #{i}"
 
     factors = []
     for name, contrib in contribs.items():
+        # Skip tiny contributions (especially text hash features)
+        if abs(contrib) < 0.01:
+            continue
         factors.append({
             "feature": display_names.get(name, name),
             "feature_key": name,
