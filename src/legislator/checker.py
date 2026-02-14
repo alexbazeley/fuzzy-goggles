@@ -81,7 +81,7 @@ class TrackedBill:
     committee: str = ""
     committee_id: int = 0
     history: list[dict] = field(default_factory=list)
-    solar_keywords: list[str] = field(default_factory=list)
+    solar_keywords: Optional[list[str]] = None
 
     @property
     def status_text(self) -> str:
@@ -143,7 +143,7 @@ def load_tracked_bills(path: Path) -> list[TrackedBill]:
             committee=b.get("committee", ""),
             committee_id=b.get("committee_id", 0),
             history=b.get("history", []),
-            solar_keywords=b.get("solar_keywords", []),
+            solar_keywords=b.get("solar_keywords"),
             progress_details=b.get("progress_details", []),
         ))
     return bills
@@ -285,6 +285,12 @@ def check_bill(api: LegiScanAPI, tracked: TrackedBill) -> Optional[BillChange]:
     new_cal_events = [c for c in new_calendar
                       if c["date"] + c.get("description", "") not in old_cal_dates]
 
+    # Build change record (may be empty if hash changed but no
+    # substantive differences were detected — e.g. metadata-only update)
+    status_changed = bill_data["status"] != tracked.status
+    has_changes = (new_progress or new_history or sponsor_changes
+                   or new_cal_events or status_changed)
+
     change = BillChange(
         bill=tracked,
         old_status=tracked.status,
@@ -293,9 +299,10 @@ def check_bill(api: LegiScanAPI, tracked: TrackedBill) -> Optional[BillChange]:
         new_history_actions=new_history,
         sponsor_changes=sponsor_changes,
         new_calendar_events=new_cal_events,
-    )
+    ) if has_changes else None
 
-    # Update tracked bill in place
+    # Update tracked bill in place (even if no substantive change,
+    # so we don't re-check next time)
     tracked.change_hash = new_hash
     tracked.status = bill_data["status"]
     tracked.progress_events = api_event_codes

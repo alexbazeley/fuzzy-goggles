@@ -169,24 +169,25 @@ When a trained model is available, scores come from a **logistic regression with
    - Virginia 2024 Regular Session
    - Colorado 2024 Regular Session
 3. Place the `.json` or `.zip` files in `src/legislator/model/data/`
-4. Run the training script:
+4. Install numpy: `pip install numpy`
+5. Run the training script:
 
 ```bash
 PYTHONPATH=src python -m legislator.model.train
+# Or sample a subset for faster iteration:
+PYTHONPATH=src python -m legislator.model.train --max-bills 50000
 ```
 
-The v2 training pipeline will:
-1. Load and extract 73 features per bill
+The training pipeline will:
+1. Load and extract 73 features per bill (sampling with `--max-bills` if specified)
 2. Estimate session dates from actual action date ranges (not Jan 1–Dec 31)
 3. Compute per-state passage rates
-4. Run 5-fold cross-validation stratified by state across 243 hyperparameter combinations (learning rate, L2, L1, epochs, class weight beta)
-5. Train the final model with the best hyperparameters and early stopping
+4. Run 5-fold cross-validation stratified by state across 24 hyperparameter combinations (learning rate, L2, L1, class weight beta)
+5. Train the final model with the best hyperparameters and early stopping (patience=50)
 6. Find the optimal classification threshold (maximizing F1 on validation set)
 7. Save everything to `src/legislator/model/weights.json` (v2 format)
 
-The training output reports CV metrics (mean ± std F1, precision, recall), the best hyperparameters, and feature weights sorted by importance. L1 regularization drives irrelevant features to exactly zero, so you can see which features the model actually uses.
-
-**Note:** The full grid search can take a while on large datasets (~435K bills). Early stopping (patience=50 epochs) keeps individual training runs efficient.
+Training uses numpy-vectorized gradient descent for performance. The training output reports CV metrics (mean +/- std F1, precision, recall), the best hyperparameters, and feature weights sorted by importance. L1 regularization drives irrelevant features to exactly zero, so you can see which features the model actually uses.
 
 ### Heuristic fallback
 

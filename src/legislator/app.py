@@ -230,7 +230,7 @@ def create_app() -> Flask:
             return jsonify({"error": "Bill not found"}), 404
 
         # Return cached results if available
-        if bill.solar_keywords:
+        if bill.solar_keywords is not None:
             return jsonify({"bill_id": bill_id, "solar_keywords": bill.solar_keywords, "cached": True})
 
         try:

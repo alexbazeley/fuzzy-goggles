@@ -55,13 +55,12 @@ _FISCAL_KEYWORDS = (
 
 # Canonical feature order — must match between training and prediction
 FEATURE_NAMES = [
-    # Sponsor features (5)
+    # Sponsor features (6)
     "sponsor_count",
     "primary_sponsor_count",
     "cosponsor_count",
     "is_bipartisan",
     "minority_party_sponsors",
-    # New: majority party alignment
     "sponsor_party_majority",
     # Bill structure features (5)
     "senate_origin",
@@ -72,7 +71,7 @@ FEATURE_NAMES = [
     # Procedural progress features (2) — no more passed_one_chamber
     "committee_referral",
     "committee_passage",
-    # Action/momentum features (4) — num_actions is now log-transformed
+    # Action/momentum features (5) — num_actions is now log-transformed
     "num_actions",
     "early_action_count",
     "days_since_introduction",
@@ -87,7 +86,7 @@ FEATURE_NAMES = [
     "state_passage_rate",
 ] + TEXT_FEATURE_NAMES  # 50 text hash features
 
-# Total: 21 structured + 50 text hash = 71 features
+# Total: 23 structured + 50 text hash = 73 features
 
 
 def _parse_date(d: str) -> Optional[date]:
