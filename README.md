@@ -126,9 +126,9 @@ Each bill gets a 0–100 score estimating its likelihood of becoming law.
 
 ### Trained model (primary)
 
-When a trained model is available, scores come from a **logistic regression** trained on historical bill data from the [Open States API](https://openstates.org/). The model learns which features actually correlate with bill passage across thousands of real bills.
+When a trained model is available, scores come from a **logistic regression with elastic net regularization** trained on historical bill data from the [Open States API](https://openstates.org/). The v2 model uses 5-fold cross-validation stratified by state, hyperparameter grid search, early stopping, and threshold tuning to maximize F1 score. It also includes text features derived from bill titles and descriptions via feature hashing.
 
-**Features used by the model:**
+**Structured features (23):**
 
 | Feature | What it measures |
 |---------|------------------|
@@ -137,18 +137,27 @@ When a trained model is available, scores come from a **logistic regression** tr
 | Co-sponsor count | Number of co-sponsors |
 | Bipartisan support | Whether sponsors come from multiple parties |
 | Minority party sponsors | Depth of cross-party support |
+| Majority party alignment | Fraction of sponsors in the legislative majority party |
 | Senate origin | Whether the bill originated in the Senate |
 | Resolution type | Whether the bill is a resolution |
 | Subject count / focus | Number of subject tags and scope |
 | Amends existing law | Whether the bill modifies existing statutes |
 | Committee referral | Whether the bill has been referred to committee |
 | Committee passage | Whether the bill cleared committee |
-| Passed one chamber | Whether the bill passed at least one chamber |
-| Number of actions | Total legislative actions taken |
+| Legislative actions | Log-transformed count of total actions |
+| Early momentum | Number of actions in the first 30 days after introduction |
 | Days since introduction | Span of legislative activity |
 | Introduction timing | When in the session the bill was introduced |
-| Companion bill | Whether a companion bill exists in the other chamber |
 | Recent action density | Number of actions in the last 30 days |
+| Title complexity | Log-transformed word count of bill title |
+| Fiscal impact | Whether the bill mentions fiscal/appropriation keywords |
+| Solar keyword categories | Number of distinct solar policy categories matched |
+| Solar relevance | Whether any solar energy keywords were found |
+| State passage rate | Historical passage rate for the bill's state |
+
+**Text features (50):** Bill titles and descriptions are tokenized (with legislative stopword removal) and mapped into 50 hash buckets via the [hashing trick](https://en.wikipedia.org/wiki/Feature_hashing). This captures textual signal with zero external dependencies and no vocabulary to maintain. Solar keyword category features reuse the existing `solar.py` keyword dictionaries.
+
+**Total: 73 features** (23 structured + 50 text hash)
 
 **Training the model:**
 
@@ -166,7 +175,18 @@ When a trained model is available, scores come from a **logistic regression** tr
 PYTHONPATH=src python -m legislator.model.train
 ```
 
-This extracts features from the downloaded bills, trains logistic regression with class weighting for the imbalanced passed/failed ratio, and saves weights to `src/legislator/model/weights.json`. The more state-sessions you include, the better the model.
+The v2 training pipeline will:
+1. Load and extract 73 features per bill
+2. Estimate session dates from actual action date ranges (not Jan 1–Dec 31)
+3. Compute per-state passage rates
+4. Run 5-fold cross-validation stratified by state across 243 hyperparameter combinations (learning rate, L2, L1, epochs, class weight beta)
+5. Train the final model with the best hyperparameters and early stopping
+6. Find the optimal classification threshold (maximizing F1 on validation set)
+7. Save everything to `src/legislator/model/weights.json` (v2 format)
+
+The training output reports CV metrics (mean ± std F1, precision, recall), the best hyperparameters, and feature weights sorted by importance. L1 regularization drives irrelevant features to exactly zero, so you can see which features the model actually uses.
+
+**Note:** The full grid search can take a while on large datasets (~435K bills). Early stopping (patience=50 epochs) keeps individual training runs efficient.
 
 ### Heuristic fallback
 
@@ -303,21 +323,22 @@ High = 3.5+, Medium = 2–3, Low = 0–1.
 
 ```
 src/legislator/
-  app.py         - Flask server and API routes
-  api.py         - LegiScan API client
-  openstates.py  - Open States API v3 client
-  checker.py     - Change detection logic and data models
-  emailer.py     - Email alert formatting/sending
-  scoring.py     - Passage likelihood scoring and session calendar awareness
-  solar.py       - Solar energy keyword analysis for bill text
-  related.py     - Related bills detection
-  config.py      - Environment variable configuration
-  __main__.py    - CLI entry point
+  app.py            - Flask server and API routes
+  api.py            - LegiScan API client
+  openstates.py     - Open States API v3 client
+  checker.py        - Change detection logic and data models
+  emailer.py        - Email alert formatting/sending
+  scoring.py        - Passage likelihood scoring and session calendar awareness
+  solar.py          - Solar energy keyword analysis for bill text
+  related.py        - Related bills detection
+  config.py         - Environment variable configuration
+  __main__.py       - CLI entry point
   model/
-    features.py  - Feature extraction for training and prediction
-    train.py     - Training pipeline (fetch data, train, export weights)
-    predict.py   - Prediction using trained logistic regression weights
-    weights.json - Trained model weights (generated by train.py)
+    features.py     - Feature extraction (73 features) for training and prediction
+    train.py        - Training pipeline (CV, grid search, elastic net, threshold tuning)
+    predict.py      - Prediction using trained logistic regression weights
+    text_features.py - Pure-Python tokenizer and feature hashing for bill text
+    weights.json    - Trained model weights v2 (generated by train.py)
   static/
-    index.html   - Web UI (dashboard, bill list, search)
+    index.html      - Web UI (dashboard, bill list, search)
 ```

@@ -22,9 +22,10 @@ State-level legislation tracking system for **solar energy developers**. Built w
 | `src/legislator/checker.py` | Data models (`TrackedBill`, `BillChange`), change detection, sponsor/calendar extraction |
 | `src/legislator/scoring.py` | Passage likelihood scoring (trained model or heuristic fallback) |
 | `src/legislator/openstates.py` | Open States API v3 client |
-| `src/legislator/model/features.py` | Feature extraction for training and prediction |
-| `src/legislator/model/train.py` | Training pipeline (fetch historical data, train, save weights) |
-| `src/legislator/model/predict.py` | Prediction using trained logistic regression weights |
+| `src/legislator/model/features.py` | Feature extraction (73 features) for training and prediction |
+| `src/legislator/model/train.py` | Training pipeline (CV, grid search, elastic net, threshold tuning) |
+| `src/legislator/model/predict.py` | Prediction using trained logistic regression weights (v1/v2) |
+| `src/legislator/model/text_features.py` | Pure-Python tokenizer and feature hashing for bill text |
 | `src/legislator/solar.py` | Solar energy keyword analysis for bill text |
 | `src/legislator/related.py` | Cross-state related bill discovery |
 | `src/legislator/emailer.py` | Email alert formatting and sending |
@@ -85,6 +86,39 @@ The `_extract_sponsors()` function in `checker.py` handles all these variants. I
 - Bill text is fetched via `getBillText` API → base64 decoded → keyword scanned
 - Results are cached in `solar_keywords` field on TrackedBill (persisted to JSON)
 - Only HTML/text documents can be analyzed; PDFs are not decoded
+- Solar keyword categories are also used as model features (`solar_category_count`, `has_solar_keywords`)
+
+### Model v2 Architecture
+The prediction model was overhauled to address critical issues (feature leakage, training data gaps, weak methodology):
+
+**Feature changes (18 → 73 features):**
+- Removed `passed_one_chamber` — tautological feature leakage (encoded outcome, not predictive signal)
+- Removed `has_companion` — always 0 for LegiScan bills
+- `num_actions` is now log-transformed to reduce conflation with outcome progress
+- Added `sponsor_party_majority` (fraction of sponsors in majority party — strongest predictor per literature)
+- Added `early_action_count` (actions in first 30 days — captures momentum without leakage)
+- Added `title_length`, `has_fiscal_note`, `solar_category_count`, `has_solar_keywords`, `state_passage_rate`
+- Added 50 text hash features via hashing trick in `text_features.py` (pure Python, deterministic djb2 hash)
+
+**Training methodology:**
+- 5-fold cross-validation stratified by state (via `_stratified_kfold()`)
+- Hyperparameter grid search: lr ∈ {0.01, 0.05, 0.1}, L2 ∈ {0.001, 0.01, 0.1}, L1 ∈ {0.0, 0.001, 0.01}, epochs ∈ {500, 1000, 2000}, beta ∈ {0.3, 0.4, 0.5}
+- Early stopping with patience=50 on validation loss
+- Elastic net (L1 + L2) regularization — L1 drives irrelevant features to exactly zero
+- Threshold tuning: searches 0.10–0.90 to maximize F1 instead of fixed 0.5 cutoff
+- Session dates estimated from per-session action date ranges (not Jan 1–Dec 31)
+- State passage rates computed and stored in `weights.json`
+
+**weights.json v2 format** adds: `version`, `threshold`, `state_passage_rates`, `hyperparameters`, `cv_metrics`, `text_hash_buckets`. `predict.py` is backward-compatible with v1 files (checks `model.get("version", 1)`).
+
+**Label improvements in `label_from_openstates()`:**
+- Now accepts `session_end_date` parameter — returns `None` (indeterminate) if session is still active
+- Handles veto overrides (veto + override → label 1)
+- Handles resolution adoption (resolution + passage → label 1)
+
+**Sponsor party extraction (`_extract_party()` in `features.py`):**
+- Tries 5 JSON paths: `person.party`, `person.current_role.party`, `person.primary_party`, top-level `party`, `organization.name`
+- Normalizes party names to canonical codes (D, R, I, G, L, NP) via `_normalize_party()`
 
 ## Running Locally
 
@@ -118,4 +152,5 @@ No test suite currently exists. Test manually by:
 - **New fields on TrackedBill**: Add to the dataclass, add to `load_tracked_bills()` with a `.get()` default, and update the frontend
 - **New API endpoints**: Add inside `create_app()` in `app.py`
 - **Frontend changes**: Edit `src/legislator/static/index.html`
-- **Always update README.md** when adding user-facing features or new env vars
+- **Model features**: Add to `FEATURE_NAMES` in `features.py`, implement in both `extract_from_openstates()` and `extract_from_tracked_bill()`, update `display_names` in `predict.py:get_top_factors()`, and update `dimension_groups` in `scoring.py:_compute_model_score()`
+- **Always update README.md and CLAUDE.md** when adding user-facing features, new env vars, or model changes
