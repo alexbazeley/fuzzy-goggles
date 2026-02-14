@@ -101,13 +101,16 @@ The prediction model was overhauled to address critical issues (feature leakage,
 - Added 50 text hash features via hashing trick in `text_features.py` (pure Python, deterministic djb2 hash)
 
 **Training methodology:**
+- Numpy-vectorized gradient descent (~100x faster than v2.0 pure-Python loops)
+- `--max-bills N` CLI flag to sample a subset for faster iteration
 - 5-fold cross-validation stratified by state (via `_stratified_kfold()`)
-- Hyperparameter grid search: lr ∈ {0.01, 0.05, 0.1}, L2 ∈ {0.001, 0.01, 0.1}, L1 ∈ {0.0, 0.001, 0.01}, epochs ∈ {500, 1000, 2000}, beta ∈ {0.3, 0.4, 0.5}
-- Early stopping with patience=50 on validation loss
+- Tighter default hyperparameter grid (24 combos): lr ∈ {0.05, 0.1}, L2 ∈ {0.001, 0.01, 0.1}, L1 ∈ {0.0, 0.01}, epochs = 1000, beta ∈ {0.4, 0.5}
+- Early stopping with patience=50 on validation loss (makes large epoch counts redundant)
 - Elastic net (L1 + L2) regularization — L1 drives irrelevant features to exactly zero
 - Threshold tuning: searches 0.10–0.90 to maximize F1 instead of fixed 0.5 cutoff
 - Session dates estimated from per-session action date ranges (not Jan 1–Dec 31)
 - State passage rates computed and stored in `weights.json`
+- Requires `numpy` (listed in `requirements.txt`)
 
 **weights.json v2 format** adds: `version`, `threshold`, `state_passage_rates`, `hyperparameters`, `cv_metrics`, `text_hash_buckets`. `predict.py` is backward-compatible with v1 files (checks `model.get("version", 1)`).
 

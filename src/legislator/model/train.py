@@ -327,12 +327,6 @@ def _normalize(X: np.ndarray) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
     return X_norm, means, stds
 
 
-def _normalize_with_stats(X: np.ndarray, means: np.ndarray,
-                          stds: np.ndarray) -> np.ndarray:
-    """Normalize X using pre-computed means and stds."""
-    return (X - means) / stds
-
-
 def train_logistic_regression(
     X: np.ndarray, y: np.ndarray,
     lr: float = 0.1, epochs: int = 1000,
