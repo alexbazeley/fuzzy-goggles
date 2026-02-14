@@ -389,7 +389,8 @@ def _compute_model_score(bill: TrackedBill) -> Optional[dict]:
     dimension_groups = {
         "sponsors": {
             "label": "Sponsor Strength",
-            "features": ["sponsor_count", "primary_sponsor_count", "cosponsor_count"],
+            "features": ["sponsor_count", "primary_sponsor_count",
+                         "cosponsor_count", "sponsor_party_majority"],
         },
         "bipartisan": {
             "label": "Bipartisan Support",
@@ -397,11 +398,12 @@ def _compute_model_score(bill: TrackedBill) -> Optional[dict]:
         },
         "procedural": {
             "label": "Procedural Progress",
-            "features": ["committee_referral", "committee_passage", "passed_one_chamber"],
+            "features": ["committee_referral", "committee_passage"],
         },
         "momentum": {
             "label": "Momentum",
-            "features": ["num_actions", "days_since_introduction", "action_density_30d"],
+            "features": ["num_actions", "early_action_count",
+                         "days_since_introduction", "action_density_30d"],
         },
         "timing": {
             "label": "Session Timing",
@@ -410,7 +412,14 @@ def _compute_model_score(bill: TrackedBill) -> Optional[dict]:
         "structure": {
             "label": "Bill Structure",
             "features": ["senate_origin", "is_resolution", "num_subjects",
-                         "focused_scope", "amends_existing_law", "has_companion"],
+                         "focused_scope", "amends_existing_law",
+                         "title_length", "has_fiscal_note",
+                         "state_passage_rate"],
+        },
+        "text_signal": {
+            "label": "Text Signal",
+            "features": [f"text_hash_{i}" for i in range(50)]
+                        + ["solar_category_count", "has_solar_keywords"],
         },
     }
 
