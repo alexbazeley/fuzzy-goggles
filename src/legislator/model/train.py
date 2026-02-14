@@ -6,6 +6,7 @@ weights to JSON.
 
 Usage:
     PYTHONPATH=src python -m legislator.model.train
+    PYTHONPATH=src python -m legislator.model.train --max-bills 50000
 
 Data setup:
     1. Create an account at https://open.pluralpolicy.com/
@@ -20,8 +21,7 @@ The script accepts any of these file layouts in the data/ directory:
     - Zip archives: *.zip (will be extracted automatically)
     - Directories containing bills as individual JSON files
 
-No external ML dependencies — logistic regression is implemented in
-pure Python using gradient descent with elastic net regularization.
+Requires numpy for vectorized training (pip install numpy).
 
 v2 improvements:
     - K-fold cross-validation (stratified by state)
@@ -31,8 +31,14 @@ v2 improvements:
     - Session dates estimated from per-session action date ranges
     - State passage rate computed and stored as a feature
     - Elastic net (L1 + L2) regularization
+
+v2.1 performance improvements:
+    - Numpy-vectorized training loop (~100x faster than pure Python)
+    - --max-bills flag to sample a subset for faster iteration
+    - Tighter default hyperparameter grid (24 combos vs 243)
 """
 
+import argparse
 import json
 import math
 import os
@@ -42,6 +48,8 @@ import zipfile
 from datetime import date
 from pathlib import Path
 from typing import Optional
+
+import numpy as np
 
 from legislator.model.features import (
     FEATURE_NAMES, extract_from_openstates, label_from_openstates,
@@ -253,19 +261,25 @@ def _compute_state_passage_rates(bills: list[dict]) -> dict:
 def prepare_dataset(bills: list[dict]) -> tuple:
     """Extract features and labels from raw Open States bill data.
 
-    Returns (X, y, states) where X is a list of feature vectors,
-    y is labels, and states is a list of state abbreviations (for
-    stratified CV).
+    Returns (X, y, states, state_passage_rates) where X is a numpy array
+    of feature vectors, y is a numpy array of labels, and states is a list
+    of state abbreviations (for stratified CV).
     """
     # Pre-compute session dates and state passage rates
+    print("  Estimating session dates...")
     session_dates = _estimate_session_dates(bills)
+    print("  Computing state passage rates...")
     state_passage_rates = _compute_state_passage_rates(bills)
 
     X = []
     y = []
     states = []
 
-    for bill in bills:
+    total = len(bills)
+    for i, bill in enumerate(bills):
+        if i % 50000 == 0 and i > 0:
+            print(f"  Processed {i}/{total} bills ({len(X)} labeled so far)...")
+
         state = _get_bill_state(bill)
         session = _get_bill_session(bill)
 
@@ -297,151 +311,98 @@ def prepare_dataset(bills: list[dict]) -> tuple:
         y.append(label)
         states.append(state)
 
-    return X, y, states, state_passage_rates
+    return np.array(X, dtype=np.float64), np.array(y, dtype=np.float64), states, state_passage_rates
 
 
 # ---------------------------------------------------------------------------
-# Pure-Python logistic regression with elastic net
+# Numpy-vectorized logistic regression with elastic net
 # ---------------------------------------------------------------------------
 
-def _sigmoid(z: float) -> float:
-    """Numerically stable sigmoid."""
-    if z >= 0:
-        return 1.0 / (1.0 + math.exp(-z))
-    else:
-        ez = math.exp(z)
-        return ez / (1.0 + ez)
-
-
-def _dot(a: list[float], b: list[float]) -> float:
-    return sum(ai * bi for ai, bi in zip(a, b))
-
-
-def _normalize(X: list[list[float]]) -> tuple[list[list[float]], list[float], list[float]]:
+def _normalize(X: np.ndarray) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
     """Z-score normalize features. Returns (X_norm, means, stds)."""
-    n = len(X)
-    d = len(X[0])
-
-    means = [0.0] * d
-    for row in X:
-        for j in range(d):
-            means[j] += row[j]
-    means = [m / n for m in means]
-
-    stds = [0.0] * d
-    for row in X:
-        for j in range(d):
-            stds[j] += (row[j] - means[j]) ** 2
-    stds = [math.sqrt(s / n) if s > 0 else 1.0 for s in stds]
-
-    X_norm = []
-    for row in X:
-        X_norm.append([(row[j] - means[j]) / stds[j] for j in range(d)])
-
+    means = X.mean(axis=0)
+    stds = X.std(axis=0)
+    stds[stds == 0] = 1.0  # avoid division by zero
+    X_norm = (X - means) / stds
     return X_norm, means, stds
 
 
-def _normalize_with_stats(X: list[list[float]], means: list[float],
-                          stds: list[float]) -> list[list[float]]:
+def _normalize_with_stats(X: np.ndarray, means: np.ndarray,
+                          stds: np.ndarray) -> np.ndarray:
     """Normalize X using pre-computed means and stds."""
-    d = len(means)
-    X_norm = []
-    for row in X:
-        X_norm.append([(row[j] - means[j]) / stds[j] if stds[j] != 0 else 0.0
-                       for j in range(d)])
-    return X_norm
+    return (X - means) / stds
 
 
 def train_logistic_regression(
-    X: list[list[float]], y: list[int],
+    X: np.ndarray, y: np.ndarray,
     lr: float = 0.1, epochs: int = 1000,
     l2_lambda: float = 0.01,
     l1_lambda: float = 0.0,
     class_weight: Optional[dict] = None,
-    X_val: Optional[list[list[float]]] = None,
-    y_val: Optional[list[int]] = None,
+    X_val: Optional[np.ndarray] = None,
+    y_val: Optional[np.ndarray] = None,
     patience: int = 50,
     verbose: bool = True,
-) -> tuple[list[float], float, int]:
+) -> tuple[np.ndarray, float, int]:
     """Train logistic regression via gradient descent with elastic net.
 
     Returns (weights, bias, best_epoch).
     Uses L2 + L1 regularization (elastic net) and optional class weights.
     Supports early stopping on validation loss.
+    All computation is numpy-vectorized.
     """
-    n = len(X)
-    d = len(X[0])
-    w = [0.0] * d
+    n, d = X.shape
+    w = np.zeros(d)
     b = 0.0
 
     # Compute sample weights
     if class_weight:
-        sample_weights = [class_weight.get(yi, 1.0) for yi in y]
+        sample_weights = np.array([class_weight.get(int(yi), 1.0) for yi in y])
     else:
-        sample_weights = [1.0] * n
+        sample_weights = np.ones(n)
 
-    total_weight = sum(sample_weights)
+    total_weight = sample_weights.sum()
 
     best_val_loss = float('inf')
-    best_w = list(w)
+    best_w = w.copy()
     best_b = b
     best_epoch = 0
     epochs_without_improvement = 0
 
     for epoch in range(epochs):
-        # Gradients
-        dw = [0.0] * d
-        db = 0.0
-        loss = 0.0
+        # Vectorized forward pass
+        z = X @ w + b
+        pred = 1.0 / (1.0 + np.exp(-np.clip(z, -500, 500)))  # stable sigmoid
 
-        for i in range(n):
-            z = _dot(w, X[i]) + b
-            pred = _sigmoid(z)
-            err = (pred - y[i]) * sample_weights[i]
+        # Weighted errors
+        err = (pred - y) * sample_weights  # (n,)
 
-            for j in range(d):
-                dw[j] += err * X[i][j]
-            db += err
+        # Vectorized gradients
+        dw = X.T @ err  # (d,)
+        db = err.sum()
 
-            # Log loss for monitoring
-            pred_clamped = max(1e-7, min(1 - 1e-7, pred))
-            loss -= sample_weights[i] * (
-                y[i] * math.log(pred_clamped) +
-                (1 - y[i]) * math.log(1 - pred_clamped)
-            )
-
-        # Update with L2 regularization (gradient step)
-        for j in range(d):
-            w[j] -= lr * (dw[j] / total_weight + l2_lambda * w[j])
+        # Update with L2 regularization
+        w -= lr * (dw / total_weight + l2_lambda * w)
         b -= lr * (db / total_weight)
 
         # L1 proximal step (soft thresholding)
         if l1_lambda > 0:
-            threshold = lr * l1_lambda
-            for j in range(d):
-                if w[j] > threshold:
-                    w[j] -= threshold
-                elif w[j] < -threshold:
-                    w[j] += threshold
-                else:
-                    w[j] = 0.0
+            thresh = lr * l1_lambda
+            w = np.sign(w) * np.maximum(np.abs(w) - thresh, 0.0)
 
         # Early stopping check on validation set
         if X_val is not None and y_val is not None:
-            val_loss = 0.0
-            for i in range(len(X_val)):
-                z = _dot(w, X_val[i]) + b
-                pred = _sigmoid(z)
-                pred_clamped = max(1e-7, min(1 - 1e-7, pred))
-                val_loss -= (
-                    y_val[i] * math.log(pred_clamped) +
-                    (1 - y_val[i]) * math.log(1 - pred_clamped)
-                )
-            val_loss /= len(X_val)
+            z_val = X_val @ w + b
+            pred_val = 1.0 / (1.0 + np.exp(-np.clip(z_val, -500, 500)))
+            pred_val = np.clip(pred_val, 1e-7, 1 - 1e-7)
+            val_loss = -(
+                y_val * np.log(pred_val) +
+                (1 - y_val) * np.log(1 - pred_val)
+            ).mean()
 
             if val_loss < best_val_loss:
                 best_val_loss = val_loss
-                best_w = list(w)
+                best_w = w.copy()
                 best_b = b
                 best_epoch = epoch
                 epochs_without_improvement = 0
@@ -455,36 +416,38 @@ def train_logistic_regression(
                           f"val_loss: {best_val_loss:.4f})")
                 return best_w, best_b, best_epoch
         else:
-            best_w = list(w)
+            best_w = w.copy()
             best_b = b
             best_epoch = epoch
 
         if verbose and epoch % 200 == 0:
+            pred_clamped = np.clip(pred, 1e-7, 1 - 1e-7)
+            loss = -(sample_weights * (
+                y * np.log(pred_clamped) +
+                (1 - y) * np.log(1 - pred_clamped)
+            )).sum()
             avg_loss = loss / total_weight
-            val_str = f", val_loss={best_val_loss:.4f}" if X_val else ""
+            val_str = f", val_loss={best_val_loss:.4f}" if X_val is not None else ""
             print(f"  Epoch {epoch:4d}: loss={avg_loss:.4f}{val_str}")
 
     return best_w, best_b, best_epoch
 
 
-def evaluate(X: list[list[float]], y: list[int],
-             w: list[float], b: float,
+def evaluate(X: np.ndarray, y: np.ndarray,
+             w: np.ndarray, b: float,
              threshold: float = 0.5) -> dict:
     """Compute accuracy, precision, recall, and F1 metrics."""
-    tp = fp = tn = fn = 0
-    for i in range(len(X)):
-        z = _dot(w, X[i]) + b
-        pred = 1 if _sigmoid(z) >= threshold else 0
-        if pred == 1 and y[i] == 1:
-            tp += 1
-        elif pred == 1 and y[i] == 0:
-            fp += 1
-        elif pred == 0 and y[i] == 0:
-            tn += 1
-        else:
-            fn += 1
+    z = X @ w + b
+    probs = 1.0 / (1.0 + np.exp(-np.clip(z, -500, 500)))
+    preds = (probs >= threshold).astype(int)
 
-    accuracy = (tp + tn) / len(X) if X else 0
+    tp = int(((preds == 1) & (y == 1)).sum())
+    fp = int(((preds == 1) & (y == 0)).sum())
+    tn = int(((preds == 0) & (y == 0)).sum())
+    fn = int(((preds == 0) & (y == 1)).sum())
+
+    n = len(X)
+    accuracy = (tp + tn) / n if n else 0
     precision = tp / (tp + fp) if (tp + fp) > 0 else 0
     recall = tp / (tp + fn) if (tp + fn) > 0 else 0
     f1 = 2 * precision * recall / (precision + recall) if (precision + recall) > 0 else 0
@@ -495,32 +458,48 @@ def evaluate(X: list[list[float]], y: list[int],
         "recall": round(recall, 4),
         "f1": round(f1, 4),
         "tp": tp, "fp": fp, "tn": tn, "fn": fn,
-        "total": len(X),
-        "positive_rate": round(sum(y) / len(y), 4) if y else 0,
+        "total": n,
+        "positive_rate": round(float(y.sum()) / len(y), 4) if len(y) else 0,
         "threshold": threshold,
     }
 
 
-def _find_best_threshold(X: list[list[float]], y: list[int],
-                         w: list[float], b: float) -> float:
+def _find_best_threshold(X: np.ndarray, y: np.ndarray,
+                         w: np.ndarray, b: float) -> float:
     """Search for the threshold that maximizes F1 on the given data."""
+    # Pre-compute probabilities once
+    z = X @ w + b
+    probs = 1.0 / (1.0 + np.exp(-np.clip(z, -500, 500)))
+
     best_f1 = 0.0
     best_thresh = 0.5
 
     for thresh_int in range(10, 91, 5):
         thresh = thresh_int / 100.0
-        metrics = evaluate(X, y, w, b, threshold=thresh)
-        if metrics["f1"] > best_f1:
-            best_f1 = metrics["f1"]
+        preds = (probs >= thresh).astype(int)
+        tp = int(((preds == 1) & (y == 1)).sum())
+        fp = int(((preds == 1) & (y == 0)).sum())
+        fn = int(((preds == 0) & (y == 1)).sum())
+        precision = tp / (tp + fp) if (tp + fp) > 0 else 0
+        recall = tp / (tp + fn) if (tp + fn) > 0 else 0
+        f1 = 2 * precision * recall / (precision + recall) if (precision + recall) > 0 else 0
+        if f1 > best_f1:
+            best_f1 = f1
             best_thresh = thresh
 
     # Fine-tune around the best
     for delta in range(-4, 5):
         thresh = best_thresh + delta / 100.0
         if 0.05 <= thresh <= 0.95:
-            metrics = evaluate(X, y, w, b, threshold=thresh)
-            if metrics["f1"] > best_f1:
-                best_f1 = metrics["f1"]
+            preds = (probs >= thresh).astype(int)
+            tp = int(((preds == 1) & (y == 1)).sum())
+            fp = int(((preds == 1) & (y == 0)).sum())
+            fn = int(((preds == 0) & (y == 1)).sum())
+            precision = tp / (tp + fp) if (tp + fp) > 0 else 0
+            recall = tp / (tp + fn) if (tp + fn) > 0 else 0
+            f1 = 2 * precision * recall / (precision + recall) if (precision + recall) > 0 else 0
+            if f1 > best_f1:
+                best_f1 = f1
                 best_thresh = thresh
 
     return best_thresh
@@ -560,23 +539,18 @@ def _stratified_kfold(states: list[str], k: int = 5,
     for fold in fold_indices:
         rng.shuffle(fold)
 
-    # Generate (train, test) pairs
+    # Generate (train, test) pairs as numpy arrays for efficient indexing
     folds = []
+    all_indices = set(range(len(states)))
     for i in range(k):
         test_set = set(fold_indices[i])
-        train = [j for j in range(len(states)) if j not in test_set]
-        folds.append((train, fold_indices[i]))
+        train = sorted(all_indices - test_set)
+        folds.append((np.array(train), np.array(fold_indices[i])))
 
     return folds
 
 
-def _subset(X: list[list[float]], y: list[int],
-            indices: list[int]) -> tuple[list[list[float]], list[int]]:
-    """Extract subset of X, y at given indices."""
-    return [X[i] for i in indices], [y[i] for i in indices]
-
-
-def cross_validate(X_norm: list[list[float]], y: list[int],
+def cross_validate(X_norm: np.ndarray, y: np.ndarray,
                    states: list[str], lr: float, l2_lambda: float,
                    l1_lambda: float, epochs: int, beta: float,
                    k: int = 5, seed: int = 42) -> dict:
@@ -590,21 +564,21 @@ def cross_validate(X_norm: list[list[float]], y: list[int],
     fold_metrics = []
 
     for fold_idx, (train_idx, test_idx) in enumerate(folds):
-        X_train, y_train = _subset(X_norm, y, train_idx)
-        X_test, y_test = _subset(X_norm, y, test_idx)
+        X_train, y_train = X_norm[train_idx], y[train_idx]
+        X_test, y_test = X_norm[test_idx], y[test_idx]
 
         # Split training into sub-train and validation for early stopping
         rng = random.Random(seed + fold_idx)
         n_train = len(X_train)
         val_size = max(1, n_train // 10)
-        val_indices = set(rng.sample(range(n_train), val_size))
-        X_subtrain = [X_train[i] for i in range(n_train) if i not in val_indices]
-        y_subtrain = [y_train[i] for i in range(n_train) if i not in val_indices]
-        X_val = [X_train[i] for i in range(n_train) if i in val_indices]
-        y_val = [y_train[i] for i in range(n_train) if i in val_indices]
+        val_indices = sorted(rng.sample(range(n_train), val_size))
+        train_mask = np.ones(n_train, dtype=bool)
+        train_mask[val_indices] = False
+        X_subtrain, y_subtrain = X_train[train_mask], y_train[train_mask]
+        X_val, y_val = X_train[~train_mask], y_train[~train_mask]
 
         # Compute class weights with beta parameter
-        pos_rate = sum(y_subtrain) / len(y_subtrain) if y_subtrain else 0.5
+        pos_rate = float(y_subtrain.sum()) / len(y_subtrain) if len(y_subtrain) else 0.5
         neg_rate = 1 - pos_rate
         class_weight = {
             0: beta / neg_rate if neg_rate > 0 else 1.0,
@@ -648,18 +622,23 @@ def cross_validate(X_norm: list[list[float]], y: list[int],
 # Hyperparameter search
 # ---------------------------------------------------------------------------
 
-def hyperparameter_search(X_norm: list[list[float]], y: list[int],
+def hyperparameter_search(X_norm: np.ndarray, y: np.ndarray,
                           states: list[str], verbose: bool = True) -> dict:
     """Grid search over hyperparameters using cross-validation.
 
     Returns dict with best hyperparameters and CV metrics.
+
+    The default grid has 24 combos (was 243 in v2) — early stopping
+    makes large epoch counts unnecessary, and the grid focuses on
+    the parameters that matter most (lr, regularization, class weight).
     """
-    # Search grid
-    lr_grid = [0.01, 0.05, 0.1]
+    # Tighter grid: 2*3*2*1*2 = 24 combos (was 3*3*3*3*3 = 243)
+    # Early stopping handles epoch count, so we fix it at 1000.
+    lr_grid = [0.05, 0.1]
     l2_grid = [0.001, 0.01, 0.1]
-    l1_grid = [0.0, 0.001, 0.01]
-    epoch_grid = [500, 1000, 2000]
-    beta_grid = [0.3, 0.4, 0.5]
+    l1_grid = [0.0, 0.01]
+    epoch_grid = [1000]
+    beta_grid = [0.4, 0.5]
 
     best_f1 = 0.0
     best_params = {}
@@ -706,21 +685,25 @@ def hyperparameter_search(X_norm: list[list[float]], y: list[int],
     }
 
 
-def save_weights(w: list[float], b: float,
-                 means: list[float], stds: list[float],
+def save_weights(w, b: float,
+                 means, stds,
                  metrics: dict, threshold: float = 0.5,
                  state_passage_rates: Optional[dict] = None,
                  hyperparameters: Optional[dict] = None,
                  cv_metrics: Optional[dict] = None,
                  path: Path = WEIGHTS_PATH):
     """Save trained model weights, normalization params, and metrics to JSON."""
+    # Convert numpy arrays to plain lists for JSON serialization
+    w_list = w.tolist() if hasattr(w, 'tolist') else list(w)
+    means_list = means.tolist() if hasattr(means, 'tolist') else list(means)
+    stds_list = stds.tolist() if hasattr(stds, 'tolist') else list(stds)
     model = {
         "version": 2,
         "feature_names": FEATURE_NAMES,
-        "weights": w,
-        "bias": b,
-        "means": means,
-        "stds": stds,
+        "weights": w_list,
+        "bias": float(b),
+        "means": means_list,
+        "stds": stds_list,
         "threshold": threshold,
         "state_passage_rates": state_passage_rates or {},
         "metrics": metrics,
@@ -740,6 +723,14 @@ def save_weights(w: list[float], b: float,
 
 
 def main():
+    parser = argparse.ArgumentParser(
+        description="Train bill passage prediction model")
+    parser.add_argument(
+        "--max-bills", type=int, default=None,
+        help="Max number of raw bills to use (randomly sampled). "
+             "Useful for faster iteration on large datasets.")
+    args = parser.parse_args()
+
     # 1. Load local data
     print("=" * 60)
     print("Step 1: Loading training data from local files")
@@ -770,23 +761,29 @@ def main():
 
     print(f"\nTotal bills loaded: {len(bills)}")
 
+    # Sample if --max-bills specified
+    if args.max_bills and len(bills) > args.max_bills:
+        rng = random.Random(42)
+        bills = rng.sample(bills, args.max_bills)
+        print(f"Sampled {args.max_bills} bills for training")
+
     # 2. Extract features and labels
     print("\n" + "=" * 60)
     print("Step 2: Extracting features")
     print("=" * 60)
     X, y, states, state_passage_rates = prepare_dataset(bills)
 
-    if not y:
+    if len(y) == 0:
         print("Error: Could not extract any labeled bills from the data.")
         print("Make sure the JSON files contain bills with 'actions' data.")
         sys.exit(1)
 
-    n_pos = sum(y)
+    n_pos = int(y.sum())
     n_neg = len(y) - n_pos
     print(f"Dataset: {len(y)} bills, {n_pos} passed ({n_pos/len(y)*100:.1f}%), "
           f"{n_neg} did not pass")
     print(f"States represented: {len(set(states))}")
-    print(f"Features per bill: {len(X[0])}")
+    print(f"Features per bill: {X.shape[1]}")
 
     if len(y) < 100:
         print("Warning: very small dataset. Results may not be reliable.")
@@ -830,14 +827,15 @@ def main():
 
     # Split into train/test (80/20) with shuffling
     rng = random.Random(42)
-    indices = list(range(len(X_norm)))
+    n = len(X_norm)
+    indices = list(range(n))
     rng.shuffle(indices)
-    split = int(len(indices) * 0.8)
-    train_idx = indices[:split]
-    test_idx = indices[split:]
+    split = int(n * 0.8)
+    train_idx = np.array(indices[:split])
+    test_idx = np.array(indices[split:])
 
-    X_train, y_train = _subset(X_norm, y, train_idx)
-    X_test, y_test = _subset(X_norm, y, test_idx)
+    X_train, y_train = X_norm[train_idx], y[train_idx]
+    X_test, y_test = X_norm[test_idx], y[test_idx]
 
     # Validation set from training for early stopping
     val_size = max(1, len(X_train) // 10)
@@ -847,7 +845,7 @@ def main():
     y_train_sub = y_train[:-val_size]
 
     # Compute class weights
-    pos_rate = sum(y_train_sub) / len(y_train_sub) if y_train_sub else 0.5
+    pos_rate = float(y_train_sub.sum()) / len(y_train_sub) if len(y_train_sub) else 0.5
     neg_rate = 1 - pos_rate
     beta = best_params.get("beta", 0.5)
     class_weight = {
@@ -883,7 +881,8 @@ def main():
 
     # 8. Print feature importances
     print("\nFeature weights (descending by absolute value):")
-    weighted = sorted(zip(FEATURE_NAMES, w), key=lambda x: abs(x[1]), reverse=True)
+    w_list = w.tolist() if hasattr(w, 'tolist') else list(w)
+    weighted = sorted(zip(FEATURE_NAMES, w_list), key=lambda x: abs(x[1]), reverse=True)
     nonzero = 0
     for name, weight in weighted:
         if abs(weight) < 1e-6:
