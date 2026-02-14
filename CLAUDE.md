@@ -24,6 +24,7 @@ State-level legislation tracking system for **solar energy developers**. Built w
 | `src/legislator/openstates.py` | Open States API v3 client |
 | `src/legislator/model/features.py` | Feature extraction (73 features) for training and prediction |
 | `src/legislator/model/train.py` | Training pipeline (CV, grid search, elastic net, threshold tuning) |
+| `src/legislator/model/export_pg.py` | Export training data from Open States PostgreSQL dump |
 | `src/legislator/model/predict.py` | Prediction using trained logistic regression weights (v1/v2) |
 | `src/legislator/model/text_features.py` | Pure-Python tokenizer and feature hashing for bill text |
 | `src/legislator/solar.py` | Solar energy keyword analysis for bill text |
@@ -131,6 +132,31 @@ PYTHONPATH=src python -m legislator
 ```
 
 Opens at http://127.0.0.1:5000
+
+## Training the Model (PostgreSQL Dump)
+
+The prediction model trains on historical Open States bill data. The best data source is their monthly PostgreSQL dump, which includes sponsor party information that JSON bulk exports lack.
+
+```bash
+# 1. Download the monthly dump from https://data.openstates.org/postgres/monthly/
+# 2. Restore into a local PostgreSQL database:
+createdb openstates
+pg_restore --no-owner --no-acl -d openstates 2026-02-public.pgdump
+
+# 3. Export training data as JSON (all 50 states):
+pip install psycopg2-binary
+PYTHONPATH=src python -m legislator.model.export_pg
+
+# Or export specific states:
+PYTHONPATH=src python -m legislator.model.export_pg --states CA,NY,TX,FL,PA
+
+# 4. Train the model:
+PYTHONPATH=src python -m legislator.model.train
+```
+
+The export script writes JSON files to `src/legislator/model/data/` (one file per state-session). The key advantage over JSON bulk exports is that the PostgreSQL dump includes `person.primary_party` on sponsorships, which enables the sponsor-related model features (bipartisan, party majority, etc.).
+
+Alternative: you can also place Open States JSON files directly in `src/legislator/model/data/` — download from https://open.pluralpolicy.com/data/session-json/.
 
 ## Testing Changes
 
