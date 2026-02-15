@@ -160,7 +160,19 @@ Alternative: you can also place Open States JSON files directly in `src/legislat
 
 ## Testing Changes
 
-No test suite currently exists. Test manually by:
+### Automated tests
+
+Run the test suite (168 tests, no API keys needed):
+
+```bash
+PYTHONPATH=src pytest tests/ -v
+```
+
+Tests cover: checker.py (sponsor extraction, change detection, persistence), scoring.py (heuristic dimensions, session awareness), solar.py (keyword analysis, text decoding), model/features.py (feature extraction, party normalization, labeling), model/text_features.py (tokenization, hashing), model/predict.py (prediction, model loading), api.py (retry logic).
+
+### Manual testing
+
+For UI/integration changes, test manually by:
 1. Starting the server
 2. Searching for bills (e.g., state=CA, query="solar")
 3. Tracking a bill and verifying sponsors appear
