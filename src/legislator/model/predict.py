@@ -138,10 +138,129 @@ def predict_passage(bill) -> Optional[dict]:
     }
 
 
+def _describe_factor(feature_key: str, raw_value: float, direction: str) -> str:
+    """Generate a plain-English contextual description for a factor."""
+    v = raw_value
+    pos = direction == "positive"
+
+    descriptions = {
+        "sponsor_count": (
+            f"This bill has {int(v)} sponsor{'s' if v != 1 else ''} — "
+            + ("a strong coalition signals support" if v >= 5 else
+               "more sponsors would strengthen its chances" if v < 3 else
+               "a moderate level of backing")
+        ),
+        "primary_sponsor_count": (
+            f"{int(v)} primary sponsor{'s' if v != 1 else ''} — "
+            + ("multiple primary sponsors show serious intent" if v >= 2 else
+               "having just one primary sponsor is typical")
+        ),
+        "cosponsor_count": (
+            f"{int(v)} co-sponsor{'s' if v != 1 else ''} — "
+            + ("broad co-sponsorship is a strong signal" if v >= 5 else
+               "limited co-sponsorship so far")
+        ),
+        "is_bipartisan": (
+            "Has sponsors from both parties — bipartisan bills pass at higher rates"
+            if v > 0 else
+            "Single-party sponsorship — bipartisan bills historically do better"
+        ),
+        "minority_party_sponsors": (
+            f"{int(v)} sponsor{'s' if v != 1 else ''} from the minority party — "
+            + ("cross-aisle support is a strong indicator" if v >= 2 else
+               "some cross-party buy-in" if v == 1 else
+               "no minority party sponsors yet")
+        ),
+        "sponsor_party_majority": (
+            f"{v:.0%} of sponsors are in the majority party — "
+            + ("strong alignment with the controlling party" if v >= 0.7 else
+               "mixed party alignment" if v >= 0.3 else
+               "sponsors are mostly in the minority party")
+        ),
+        "senate_origin": (
+            "Originated in the Senate" if v > 0 else "Originated in the House"
+        ),
+        "is_resolution": (
+            "This is a resolution, not a standard bill" if v > 0 else
+            "Standard bill type"
+        ),
+        "num_subjects": (
+            f"Tagged with {int(v)} subject{'s' if v != 1 else ''} — "
+            + ("narrowly focused" if v <= 2 else "broadly scoped")
+        ),
+        "focused_scope": (
+            "Narrowly focused bill — tends to face less opposition" if v > 0 else
+            "Broader scope bill"
+        ),
+        "amends_existing_law": (
+            "Amends existing law rather than creating new statute" if v > 0 else
+            "Creates new statutory language"
+        ),
+        "committee_referral": (
+            "Has been referred to committee — a standard first step" if v > 0 else
+            "Not yet referred to committee"
+        ),
+        "committee_passage": (
+            "Cleared committee — a major milestone that most bills never reach" if v > 0 else
+            "Has not yet cleared committee"
+        ),
+        "num_actions": (
+            f"{int(round(v))} legislative action{'s' if round(v) != 1 else ''} on record"
+        ),
+        "early_action_count": (
+            f"{int(v)} action{'s' if v != 1 else ''} in the first 30 days — "
+            + ("strong early momentum" if v >= 3 else
+               "moderate early activity" if v >= 1 else
+               "slow start out of the gate")
+        ),
+        "days_since_introduction": (
+            f"Introduced {int(v)} day{'s' if v != 1 else ''} ago"
+        ),
+        "session_pct_at_intro": (
+            f"Introduced at the {v:.0%} mark of the session — "
+            + ("early introduction gives more runway" if v <= 0.25 else
+               "mid-session introduction" if v <= 0.6 else
+               "late introduction leaves little time")
+        ),
+        "action_density_30d": (
+            f"Recent activity rate: {v:.1f} actions/day over 30 days — "
+            + ("very active" if v >= 0.3 else
+               "some recent activity" if v > 0 else
+               "no recent activity")
+        ),
+        "title_length": f"Title is {int(v)} characters long",
+        "has_fiscal_note": (
+            "Has a fiscal note attached — indicates budget impact review" if v > 0 else
+            "No fiscal note"
+        ),
+        "solar_category_count": (
+            f"Covers {int(v)} solar policy categor{'y' if v == 1 else 'ies'}"
+            if v > 0 else "No specific solar policy categories detected"
+        ),
+        "has_solar_keywords": (
+            "Contains solar energy keywords" if v > 0 else
+            "No solar-specific language detected"
+        ),
+        "state_passage_rate": (
+            f"This state passes {v:.0%} of introduced bills — "
+            + ("above average" if v >= 0.25 else
+               "below average" if v <= 0.15 else
+               "near the national average")
+        ),
+    }
+
+    if feature_key in descriptions:
+        return descriptions[feature_key]
+    if feature_key.startswith("text_hash_"):
+        return "Language pattern in the bill text " + ("associated with passage" if pos else "associated with failure")
+    return ""
+
+
 def get_top_factors(prediction: dict, top_n: int = 5) -> list[dict]:
     """Extract the top positive and negative contributing features.
 
-    Returns list of dicts with 'feature', 'contribution', 'direction', 'raw_value'.
+    Returns list of dicts with 'feature', 'contribution', 'direction',
+    'raw_value', and 'description'.
     """
     if not prediction:
         return []
@@ -184,12 +303,15 @@ def get_top_factors(prediction: dict, top_n: int = 5) -> list[dict]:
         # Skip tiny contributions (especially text hash features)
         if abs(contrib) < 0.01:
             continue
+        direction = "positive" if contrib > 0 else "negative"
+        raw_val = raw.get(name, 0)
         factors.append({
             "feature": display_names.get(name, name),
             "feature_key": name,
             "contribution": contrib,
-            "direction": "positive" if contrib > 0 else "negative",
-            "raw_value": raw.get(name, 0),
+            "direction": direction,
+            "raw_value": raw_val,
+            "description": _describe_factor(name, raw_val, direction),
         })
 
     # Return top N by absolute contribution

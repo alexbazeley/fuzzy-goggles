@@ -680,104 +680,159 @@
       margin-bottom: 16px;
     }
 
-    /* ── Passage breakdown ── */
-    .passage-breakdown { margin-top: 10px; }
-    .passage-dim {
-      margin-bottom: 8px;
-    }
-    .passage-dim-row {
-      display: flex;
-      align-items: center;
-    }
-    .passage-dim-label {
-      width: 140px;
-      flex-shrink: 0;
-      font-size: 0.8rem;
-      font-weight: 600;
+    /* ── FiveThirtyEight-style passage breakdown ── */
+    .passage-summary {
+      font-size: 0.88rem;
       color: var(--text-secondary);
+      line-height: 1.5;
+      margin-bottom: 16px;
+      padding: 10px 14px;
+      background: var(--surface-alt);
+      border-left: 3px solid var(--navy);
+      border-radius: 0 var(--radius) var(--radius) 0;
     }
-    .passage-dim-bar {
-      flex: 1;
-      height: 16px;
-      background: var(--border-light);
+    .passage-factors {
+      margin-top: 4px;
+    }
+    .passage-factor {
+      display: grid;
+      grid-template-columns: 160px 1fr;
+      gap: 0 12px;
+      padding: 10px 0;
+      border-bottom: 1px solid var(--border-light);
+    }
+    .passage-factor:last-child { border-bottom: none; }
+    .passage-factor-label {
+      font-size: 0.82rem;
+      font-weight: 700;
+      color: var(--text-primary);
+      line-height: 1.3;
+      padding-top: 2px;
+    }
+    .passage-factor-body {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+    .passage-factor-bar-track {
+      position: relative;
+      height: 22px;
+      background: var(--surface-alt);
       border-radius: 3px;
       overflow: hidden;
-      margin: 0 10px;
     }
-    .passage-dim-fill {
-      height: 100%;
-      border-radius: 3px;
+    .passage-factor-bar-center {
+      position: absolute;
+      left: 50%;
+      top: 0;
+      bottom: 0;
+      width: 2px;
+      background: var(--border);
+      z-index: 1;
+    }
+    .passage-factor-bar {
+      position: absolute;
+      top: 2px;
+      bottom: 2px;
+      border-radius: 2px;
+      min-width: 4px;
       transition: width 0.4s ease;
     }
-    .passage-dim-score {
-      width: 48px;
-      text-align: right;
-      font-family: var(--font-mono);
-      font-size: 0.75rem;
-      font-weight: 700;
-      color: var(--text-secondary);
+    .passage-factor-bar.helps {
+      left: 50%;
+      background: var(--green);
     }
-    .passage-dim-detail {
-      margin-left: 140px;
-      padding-left: 10px;
+    .passage-factor-bar.hurts {
+      right: 50%;
+      background: var(--red);
+    }
+    .passage-factor-value {
+      font-family: var(--font-mono);
+      font-size: 0.68rem;
+      font-weight: 700;
+      position: absolute;
+      top: 50%;
+      transform: translateY(-50%);
+      z-index: 2;
+      line-height: 1;
+    }
+    .passage-factor-value.helps {
+      color: #1a7a40;
+      right: 6px;
+    }
+    .passage-factor-value.hurts {
+      color: #a52020;
+      left: 6px;
+    }
+    .passage-factor-desc {
+      font-size: 0.76rem;
+      color: var(--text-muted);
+      line-height: 1.4;
+    }
+    .passage-factor-header {
+      display: flex;
+      justify-content: space-between;
+      padding: 4px 0 8px;
+      border-bottom: 2px solid var(--text-primary);
+      margin-bottom: 2px;
+    }
+    .passage-factor-header span {
+      font-size: 0.68rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      color: var(--text-muted);
+    }
+    .passage-factor-header span:first-child { color: var(--red); }
+    .passage-factor-header span:last-child { color: var(--green); }
+
+    /* ── Model methodology footer ── */
+    .model-footer {
+      margin-top: 14px;
+      padding-top: 10px;
+      border-top: 1px solid var(--border-light);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 6px;
+    }
+    .model-footer-left {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .model-footer-text {
       font-size: 0.72rem;
       color: var(--text-muted);
-      font-style: italic;
-      margin-top: 1px;
     }
-
-    /* ── Model explainer ── */
-    .model-explainer {
-      margin-bottom: 12px;
+    .model-footer-toggle {
+      font-size: 0.72rem;
+      color: var(--teal);
+      cursor: pointer;
+      background: none;
+      border: none;
+      font-family: inherit;
+      font-weight: 600;
+      padding: 0;
     }
+    .model-footer-toggle:hover { text-decoration: underline; }
     .model-explainer-body {
       display: none;
       background: var(--surface-alt);
       border: 1px solid var(--border);
       border-radius: var(--radius);
       padding: 14px 16px;
-      margin-top: 8px;
+      margin-top: 10px;
     }
     .model-explainer-body.open { display: block; }
     .model-explainer-body p {
-      font-size: 0.82rem;
+      font-size: 0.8rem;
       color: var(--text-secondary);
       line-height: 1.6;
-      margin-bottom: 10px;
+      margin-bottom: 8px;
     }
     .model-explainer-body p:last-child { margin-bottom: 0; }
-    .model-table {
-      width: 100%;
-      border-collapse: collapse;
-      margin: 8px 0;
-      font-size: 0.78rem;
-    }
-    .model-table th {
-      text-align: left;
-      font-weight: 700;
-      color: var(--text-primary);
-      padding: 4px 8px;
-      border-bottom: 2px solid var(--border);
-      text-transform: uppercase;
-      font-size: 0.68rem;
-      letter-spacing: 0.8px;
-    }
-    .model-table td {
-      padding: 4px 8px;
-      border-bottom: 1px solid var(--border-light);
-      color: var(--text-secondary);
-    }
-    .model-table td:first-child {
-      font-weight: 600;
-      color: var(--text-primary);
-      white-space: nowrap;
-    }
-    .model-table td:nth-child(2) {
-      font-family: var(--font-mono);
-      font-weight: 700;
-      text-align: center;
-      width: 50px;
-    }
 
     /* ── Sponsor chips ── */
     .sponsor-chips {
@@ -824,20 +879,6 @@
       border-radius: 0 var(--radius) var(--radius) 0;
       font-size: 0.82rem;
       color: #8b2020;
-    }
-
-    /* ── Factor items ── */
-    .factor-positive {
-      font-size: 0.78rem;
-      color: var(--green);
-      font-weight: 500;
-      padding: 1px 0;
-    }
-    .factor-negative {
-      font-size: 0.78rem;
-      color: var(--red);
-      font-weight: 500;
-      padding: 1px 0;
     }
 
     /* ── History timeline ── */
@@ -953,7 +994,8 @@
       .filter-bar { gap: 6px; }
       .chart-label { width: 70px; font-size: 0.75rem; }
       .details-grid { grid-template-columns: 1fr; }
-      .passage-dim-detail { margin-left: 0; padding-left: 0; }
+      .passage-factor { grid-template-columns: 1fr; }
+      .passage-factor-label { margin-bottom: 4px; }
     }
   </style>
 </head>
@@ -1271,85 +1313,136 @@
       </div>`;
     }
 
-    // --- Passage dimension breakdown with detail text and model explainer ---
+    // --- FiveThirtyEight-style passage breakdown ---
     function passageBreakdown(passage) {
-      if (!passage || !passage.dimensions) return "";
-      const dims = passage.dimensions;
-      const dimNames = {
-        procedural: "Procedural",
-        sponsors: "Sponsors",
-        bipartisan: "Bipartisan",
-        momentum: "Momentum",
-        timing: "Timing",
-        structure: "Structure",
-      };
-      const dimColors = {
-        procedural: "var(--navy)",
-        sponsors: "var(--purple)",
-        bipartisan: "var(--teal)",
-        momentum: "var(--accent)",
-        timing: "var(--red)",
-        structure: "var(--text-muted)",
-      };
+      if (!passage) return "";
+
+      // For heuristic model (no structured factors), show simple fallback
+      if (passage.model !== "trained" || !passage.factors || !Array.isArray(passage.factors) || passage.factors.length === 0) {
+        return _passageBreakdownHeuristic(passage);
+      }
 
       let html = '';
 
-      // Model explainer toggle
-      html += `<div class="model-explainer">
-        <button class="btn-link" onclick="toggleExplainer(this)">How is this calculated?</button>
-        <div class="model-explainer-body">
-          <p>This score estimates how likely a bill is to pass on a <strong>0&ndash;100 scale</strong>. It combines six dimensions of legislative progress, each weighted by its predictive importance.</p>
-          <table class="model-table">
-            <tr><th>Dimension</th><th>Max</th><th>Measures</th></tr>
-            <tr><td>Procedural</td><td>30</td><td>How far the bill has advanced: introduced, referred to committee, cleared committee, engrossed, enrolled, or passed</td></tr>
-            <tr><td>Sponsors</td><td>20</td><td>Number and quality of sponsors: primary sponsors, co-sponsor count, bicameral support, joint sponsors</td></tr>
-            <tr><td>Bipartisan</td><td>12</td><td>Cross-party support depth: single-party (0), bipartisan (4&ndash;8), or tri-partisan (12)</td></tr>
-            <tr><td>Momentum</td><td>15</td><td>Recent activity level: days since last action, speed between milestones, upcoming scheduled events</td></tr>
-            <tr><td>Timing</td><td>10</td><td>Bill progress relative to session calendar: a bill stuck at introduction late in session scores lower</td></tr>
-            <tr><td>Structure</td><td>5</td><td>Bill characteristics: chamber of origin, resolution type, scope focus, amends existing law</td></tr>
-          </table>
-          <p>The raw total (out of 92) is normalized to 0&ndash;100. Bills that are already <strong>Passed</strong> score 98; <strong>Vetoed</strong> or <strong>Failed</strong> bills score 0. A decay multiplier is applied if a bill is stalled late in the session.</p>
-          <p><strong>Confidence</strong> reflects data completeness: "high" means sponsor, history, progress, and session data are all available. "Low" confidence means limited data, and the score should be treated with caution.${passage.model === "trained" ? ' When a trained ML model is available (indicated by the <span class="badge badge-ml" style="display:inline;vertical-align:middle">ML</span> badge), logistic regression weights replace the heuristic scoring.' : ''}</p>
-        </div>
+      // Summary sentence
+      if (passage.summary) {
+        html += `<div class="passage-summary">${esc(passage.summary)}</div>`;
+      }
+
+      // Diverging bar chart: hurts ← → helps
+      const maxC = passage.max_contribution || 1;
+      const helps = passage.factors.filter(f => f.direction === "positive");
+      const hurts = passage.factors.filter(f => f.direction === "negative");
+
+      // Sort: helps by contribution desc, hurts by contribution asc (most negative first)
+      helps.sort((a, b) => b.contribution - a.contribution);
+      hurts.sort((a, b) => a.contribution - b.contribution);
+
+      // Interleave: show all sorted by absolute impact
+      const sorted = [...passage.factors].sort((a, b) => Math.abs(b.contribution) - Math.abs(a.contribution));
+
+      html += '<div class="passage-factors">';
+      html += `<div class="passage-factor-header">
+        <span>Hurts chances</span>
+        <span>Helps chances</span>
       </div>`;
 
-      if (passage.model === "trained") {
-        html += '<div style="margin-bottom:8px"><span class="badge badge-ml">ML</span> <span style="font-size:0.78rem;color:var(--text-muted)">Logistic regression trained on historical data</span></div>';
-      }
+      sorted.forEach(f => {
+        const isHelps = f.direction === "positive";
+        const barPct = Math.max(3, (Math.abs(f.contribution) / maxC) * 48);
+        const dir = isHelps ? "helps" : "hurts";
+        const sign = isHelps ? "+" : "";
+        const name = typeof f === "string" ? f : (f.name || f.feature || "");
+        const desc = f.description || "";
 
-      html += '<div class="passage-breakdown">';
-      for (const [key, label] of Object.entries(dimNames)) {
-        const d = dims[key];
-        if (!d) continue;
-        const pct = d.max > 0 ? (d.score / d.max * 100) : 0;
-        const color = dimColors[key] || "var(--text-muted)";
-        html += `
-          <div class="passage-dim">
-            <div class="passage-dim-row">
-              <span class="passage-dim-label">${label}</span>
-              <div class="passage-dim-bar">
-                <div class="passage-dim-fill" style="width:${pct}%;background:${color}"></div>
+        html += `<div class="passage-factor">
+          <div class="passage-factor-label">${esc(name)}</div>
+          <div class="passage-factor-body">
+            <div class="passage-factor-bar-track">
+              <div class="passage-factor-bar-center"></div>
+              <div class="passage-factor-bar ${dir}" style="width:${barPct}%">
               </div>
-              <span class="passage-dim-score">${d.score}/${d.max}</span>
+              <div class="passage-factor-value ${dir}" style="${isHelps ? 'left:calc(50% + ' + barPct + '% + 6px)' : 'right:calc(50% + ' + barPct + '% + 6px)'}">${sign}${f.contribution.toFixed(2)}</div>
             </div>
-            ${d.detail ? `<div class="passage-dim-detail">${esc(d.detail)}</div>` : ''}
-          </div>`;
-      }
+            ${desc ? `<div class="passage-factor-desc">${esc(desc)}</div>` : ''}
+          </div>
+        </div>`;
+      });
+
       html += '</div>';
 
-      // Key factors
-      if (passage.model === "trained" && passage.factors && passage.factors.length > 0) {
-        html += '<div style="margin-top:10px"><h4 style="font-size:0.72rem;color:var(--text-muted);text-transform:uppercase;letter-spacing:1.2px;font-weight:700;margin-bottom:6px">Key Factors</h4>';
-        passage.factors.forEach(f => {
-          const isPositive = f.includes("helps");
-          html += `<div class="${isPositive ? 'factor-positive' : 'factor-negative'}">${isPositive ? '+' : '-'} ${esc(f)}</div>`;
+      // Risk factors
+      if (passage.risks && passage.risks.length > 0) {
+        html += '<div style="margin-top:14px">';
+        passage.risks.forEach(r => {
+          html += `<div class="risk-item">${esc(r)}</div>`;
         });
         html += '</div>';
       }
 
-      // Risks
+      // Confidence note
+      if (passage.confidence === "low") {
+        html += '<p style="font-size:0.78rem;color:var(--text-muted);font-style:italic;margin-top:8px">Limited data available — treat this score with caution.</p>';
+      }
+
+      // Model methodology footer
+      const metrics = passage.model_metrics || {};
+      const f1 = metrics.f1 ? (metrics.f1 * 100).toFixed(1) : null;
+      html += `<div class="model-footer">
+        <div class="model-footer-left">
+          <span class="badge badge-ml">ML</span>
+          <span class="model-footer-text">Logistic regression trained on ${metrics.training_samples ? metrics.training_samples.toLocaleString() : '100k+'} bills</span>
+        </div>
+        <button class="model-footer-toggle" onclick="toggleExplainer(this)">Methodology</button>
+      </div>
+      <div class="model-explainer-body">
+        <p>This score comes from a logistic regression model trained on historical state legislation data from Open States. The model analyzes ${metrics.num_features || 73} features of each bill — including sponsor composition, procedural progress, timing, and bill text — to estimate passage probability.</p>
+        <p>Each bar above shows how much a single feature pushes the prediction toward passage (right/green) or failure (left/red). The feature's <em>contribution</em> is its weight in the model multiplied by the bill's normalized value for that feature.</p>
+        ${f1 ? `<p>Model accuracy: <strong>${f1}% F1 score</strong> on held-out test data${metrics.precision ? ` (${(metrics.precision * 100).toFixed(0)}% precision, ${(metrics.recall * 100).toFixed(0)}% recall)` : ''}.</p>` : ''}
+      </div>`;
+
+      return html;
+    }
+
+    // Fallback for heuristic model (preserves old dimension-bar style)
+    function _passageBreakdownHeuristic(passage) {
+      if (!passage) return "";
+      let html = '';
+
+      if (passage.dimensions) {
+        const dimNames = {
+          procedural: "Procedural", sponsors: "Sponsors", bipartisan: "Bipartisan",
+          momentum: "Momentum", timing: "Timing", structure: "Structure",
+        };
+        html += '<div style="margin-top:8px">';
+        for (const [key, label] of Object.entries(dimNames)) {
+          const d = passage.dimensions[key];
+          if (!d) continue;
+          const pct = d.max > 0 ? (d.score / d.max * 100) : 0;
+          html += `<div style="margin-bottom:6px;display:flex;align-items:center">
+            <span style="width:100px;font-size:0.8rem;font-weight:600;color:var(--text-secondary)">${label}</span>
+            <div style="flex:1;height:14px;background:var(--border-light);border-radius:3px;overflow:hidden;margin:0 8px">
+              <div style="height:100%;width:${pct}%;background:var(--navy);border-radius:3px"></div>
+            </div>
+            <span style="font-family:var(--font-mono);font-size:0.72rem;font-weight:700;color:var(--text-secondary)">${d.score}/${d.max}</span>
+          </div>`;
+        }
+        html += '</div>';
+      }
+
+      // String-format factors from heuristic
+      if (passage.factors && passage.factors.length > 0) {
+        html += '<div style="margin-top:10px">';
+        passage.factors.forEach(f => {
+          const text = typeof f === "string" ? f : (f.name || "");
+          const isPos = typeof f === "string" ? f.includes("helps") : f.direction === "positive";
+          html += `<div style="font-size:0.78rem;color:${isPos ? 'var(--green)' : 'var(--red)'};font-weight:500;padding:1px 0">${isPos ? '+' : '-'} ${esc(text)}</div>`;
+        });
+        html += '</div>';
+      }
+
       if (passage.risks && passage.risks.length > 0) {
-        html += '<div style="margin-top:10px"><h4 style="font-size:0.72rem;color:var(--text-muted);text-transform:uppercase;letter-spacing:1.2px;font-weight:700;margin-bottom:6px">Risk Factors</h4>';
+        html += '<div style="margin-top:10px">';
         passage.risks.forEach(r => {
           html += `<div class="risk-item">${esc(r)}</div>`;
         });
@@ -1357,7 +1450,7 @@
       }
 
       if (passage.confidence === "low") {
-        html += '<p class="confidence-note">Limited data available — score may not reflect actual prospects.</p>';
+        html += '<p style="font-size:0.78rem;color:var(--text-muted);font-style:italic;margin-top:6px">Limited data — score may not reflect actual prospects.</p>';
       }
 
       return html;
@@ -1365,9 +1458,14 @@
 
     // --- Toggle model explainer ---
     function toggleExplainer(btn) {
-      const body = btn.nextElementSibling;
+      // Find the .model-explainer-body — it's the next sibling of btn's parent container
+      let body = btn.nextElementSibling;
+      if (!body || !body.classList.contains("model-explainer-body")) {
+        body = btn.parentElement.nextElementSibling;
+      }
+      if (!body) return;
       body.classList.toggle("open");
-      btn.textContent = body.classList.contains("open") ? "Hide methodology" : "How is this calculated?";
+      btn.textContent = body.classList.contains("open") ? "Hide methodology" : "Methodology";
     }
 
     // --- Render sponsor chips ---
