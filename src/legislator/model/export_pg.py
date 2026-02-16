@@ -80,7 +80,7 @@ def fetch_sessions(conn, state: str) -> list[dict]:
                ls.start_date, ls.end_date, ls.active
         FROM opencivicdata_legislativesession ls
         JOIN opencivicdata_jurisdiction j ON ls.jurisdiction_id = j.id
-        WHERE j.id LIKE %%s
+        WHERE j.id LIKE %s
         ORDER BY ls.start_date DESC NULLS LAST
     """, (f"%/state:{state.lower()}/%",))
     sessions = []
