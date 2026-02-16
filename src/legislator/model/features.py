@@ -16,10 +16,16 @@ Changes from v1:
   - Added 'title_length' (log word count of title)
   - Added 'has_fiscal_note' (fiscal/appropriation keywords)
   - Added 'solar_category_count' and 'has_solar_keywords'
-  - Added 'state_passage_rate' (historical rate per state)
   - Added 50 text hash features (hashing trick on title+description)
   - Fixed label_from_openstates() to check session completion
   - Fixed sponsor party extraction to try multiple JSON paths
+
+Changes from v2 (model v3):
+  - num_actions capped at 60-day window to prevent temporal leakage
+  - Removed 'days_since_introduction' (leaky) → 'days_to_first_committee'
+  - Removed 'action_density_30d' (leaky) → 'committee_speed'
+  - Removed 'state_passage_rate' (tautological, moved to post-hoc prior)
+  - Expanded text hash from 50 → 500 buckets with bigram support
 """
 
 import math
@@ -71,22 +77,20 @@ FEATURE_NAMES = [
     # Procedural progress features (2) — no more passed_one_chamber
     "committee_referral",
     "committee_passage",
-    # Action/momentum features (5) — num_actions is now log-transformed
+    # Action/momentum features (5) — num_actions capped at 60-day window
     "num_actions",
     "early_action_count",
-    "days_since_introduction",
+    "days_to_first_committee",
     "session_pct_at_intro",
-    "action_density_30d",
+    "committee_speed",
     # Text-derived features (4)
     "title_length",
     "has_fiscal_note",
     "solar_category_count",
     "has_solar_keywords",
-    # State-level feature (1)
-    "state_passage_rate",
-] + TEXT_FEATURE_NAMES  # 50 text hash features
+] + TEXT_FEATURE_NAMES  # 500 text hash features
 
-# Total: 23 structured + 50 text hash = 73 features
+# Total: 22 structured + 500 text hash = 522 features
 
 
 def _parse_date(d: str) -> Optional[date]:
@@ -185,8 +189,7 @@ def _normalize_party(party: str) -> str:
 
 def extract_from_openstates(bill: dict, session_start: Optional[date] = None,
                             session_end: Optional[date] = None,
-                            chamber_majority: Optional[str] = None,
-                            state_passage_rate: float = 0.0) -> dict:
+                            chamber_majority: Optional[str] = None) -> dict:
     """Extract feature dict from an Open States API bill object.
 
     Args:
@@ -196,7 +199,6 @@ def extract_from_openstates(bill: dict, session_start: Optional[date] = None,
         chamber_majority: Canonical party code of the majority party
             in the originating chamber (e.g. "D" or "R"). Used for
             sponsor_party_majority feature.
-        state_passage_rate: Historical passage rate for this state (0-1).
     """
     features = {name: 0.0 for name in FEATURE_NAMES}
 
@@ -283,8 +285,6 @@ def extract_from_openstates(bill: dict, session_start: Optional[date] = None,
 
     # --- Actions / procedural progress ---
     actions = bill.get("actions", [])
-    # Log-transformed action count (reduces conflation with outcome)
-    features["num_actions"] = math.log(1 + len(actions))
 
     action_classes = set()
     for a in actions:
@@ -293,16 +293,18 @@ def extract_from_openstates(bill: dict, session_start: Optional[date] = None,
 
     features["committee_referral"] = 1.0 if "referral-committee" in action_classes else 0.0
     features["committee_passage"] = 1.0 if "committee-passage" in action_classes else 0.0
-    # passed_one_chamber REMOVED — it was tautological (feature leakage)
 
     # --- Timing ---
     first_action_str = bill.get("first_action_date") or ""
-    latest_action_str = bill.get("latest_action_date") or ""
     first_dt = _parse_date(first_action_str)
-    latest_dt = _parse_date(latest_action_str)
 
-    if first_dt and latest_dt:
-        features["days_since_introduction"] = float((latest_dt - first_dt).days)
+    # num_actions: capped at 60-day window to prevent temporal leakage
+    if first_dt and actions:
+        cutoff_60 = (first_dt + timedelta(days=60)).isoformat()
+        early_60 = [a for a in actions if (a.get("date") or "") <= cutoff_60]
+        features["num_actions"] = math.log(1 + len(early_60))
+    else:
+        features["num_actions"] = math.log(1 + len(actions))
 
     if first_dt and session_start and session_end:
         total_days = (session_end - session_start).days or 1
@@ -317,14 +319,37 @@ def extract_from_openstates(bill: dict, session_start: Optional[date] = None,
                  if (a.get("date") or "") <= cutoff_30]
         features["early_action_count"] = float(len(early))
 
-    # --- Action density (last 30 days of the bill's life) ---
-    if latest_dt and actions:
-        cutoff_30 = (latest_dt - timedelta(days=30)).isoformat()
-        recent = [a for a in actions if (a.get("date") or "") >= cutoff_30]
-        features["action_density_30d"] = float(len(recent))
+    # --- days_to_first_committee: days from introduction to first committee action ---
+    if first_dt and actions:
+        committee_dates = []
+        for a in actions:
+            cls = a.get("classification") or []
+            if "referral-committee" in cls or "committee-passage" in cls:
+                d = _parse_date(a.get("date") or "")
+                if d and d >= first_dt:
+                    committee_dates.append(d)
+        if committee_dates:
+            features["days_to_first_committee"] = float(
+                (min(committee_dates) - first_dt).days)
 
-    # --- State passage rate ---
-    features["state_passage_rate"] = state_passage_rate
+    # --- committee_speed: days from committee referral to committee passage ---
+    if actions:
+        referral_dates = []
+        passage_dates = []
+        for a in actions:
+            cls = a.get("classification") or []
+            d = _parse_date(a.get("date") or "")
+            if d:
+                if "referral-committee" in cls:
+                    referral_dates.append(d)
+                if "committee-passage" in cls:
+                    passage_dates.append(d)
+        if referral_dates and passage_dates:
+            first_referral = min(referral_dates)
+            first_passage = min(passage_dates)
+            if first_passage >= first_referral:
+                features["committee_speed"] = float(
+                    (first_passage - first_referral).days)
 
     return features
 
@@ -383,15 +408,13 @@ def label_from_openstates(bill: dict,
 # Extract from TrackedBill (for live prediction)
 # ---------------------------------------------------------------------------
 
-def extract_from_tracked_bill(bill, state_passage_rate: float = 0.0) -> dict:
+def extract_from_tracked_bill(bill) -> dict:
     """Extract feature dict from a TrackedBill instance.
 
     Maps TrackedBill fields to the same features used in training.
 
     Args:
         bill: TrackedBill instance.
-        state_passage_rate: Historical passage rate for this state (0-1).
-            Loaded from model weights at prediction time.
     """
     features = {name: 0.0 for name in FEATURE_NAMES}
 
@@ -481,49 +504,64 @@ def extract_from_tracked_bill(bill, state_passage_rate: float = 0.0) -> dict:
     # passed_one_chamber REMOVED — feature leakage
 
     # --- Actions ---
-    features["num_actions"] = math.log(1 + len(bill.history))
-
-    # Days since introduction and early action count
+    first_dt = None
     if bill.history:
         dates = sorted(h.get("date", "") for h in bill.history if h.get("date"))
         if dates:
             first_dt = _parse_date(dates[0])
-            last_dt = _parse_date(dates[-1])
-            if first_dt and last_dt:
-                features["days_since_introduction"] = float(
-                    (last_dt - first_dt).days)
 
-            # Early action count (first 30 days)
-            if first_dt:
-                cutoff_30 = (first_dt + timedelta(days=30)).isoformat()
-                early = [h for h in bill.history
-                         if (h.get("date") or "") <= cutoff_30]
-                features["early_action_count"] = float(len(early))
+    # num_actions: capped at 60-day window to prevent temporal leakage
+    if first_dt and bill.history:
+        cutoff_60 = (first_dt + timedelta(days=60)).isoformat()
+        early_60 = [h for h in bill.history
+                    if (h.get("date") or "") <= cutoff_60]
+        features["num_actions"] = math.log(1 + len(early_60))
+    else:
+        features["num_actions"] = math.log(1 + len(bill.history))
 
-    # Session timing
-    if bill.session_year_start and bill.session_year_end and bill.history:
+    # Early action count (first 30 days)
+    if first_dt and bill.history:
+        cutoff_30 = (first_dt + timedelta(days=30)).isoformat()
+        early = [h for h in bill.history
+                 if (h.get("date") or "") <= cutoff_30]
+        features["early_action_count"] = float(len(early))
+
+    # days_to_first_committee: days from introduction to committee referral
+    if first_dt and bill.progress_details:
+        for pd in bill.progress_details:
+            if pd.get("event") == 9:  # committee referral
+                ref_dt = _parse_date(pd.get("date") or "")
+                if ref_dt and ref_dt >= first_dt:
+                    features["days_to_first_committee"] = float(
+                        (ref_dt - first_dt).days)
+                    break
+
+    # committee_speed: days from committee referral to committee passage
+    if bill.progress_details:
+        referral_dt = None
+        passage_dt = None
+        for pd in bill.progress_details:
+            evt = pd.get("event")
+            d = _parse_date(pd.get("date") or "")
+            if d:
+                if evt == 9 and referral_dt is None:  # committee referral
+                    referral_dt = d
+                if evt == 10 and passage_dt is None:  # committee passage
+                    passage_dt = d
+        if referral_dt and passage_dt and passage_dt >= referral_dt:
+            features["committee_speed"] = float(
+                (passage_dt - referral_dt).days)
+
+    # Session timing — use Feb 1 / Dec 31 as more realistic session bounds
+    if bill.session_year_start and bill.session_year_end and first_dt:
         try:
-            session_start = date(bill.session_year_start, 1, 1)
+            session_start = date(bill.session_year_start, 2, 1)
             session_end = date(bill.session_year_end, 12, 31)
-            dates_sorted = sorted(
-                h.get("date", "") for h in bill.history if h.get("date"))
-            if dates_sorted:
-                first_dt = _parse_date(dates_sorted[0])
-                if first_dt:
-                    total_days = (session_end - session_start).days or 1
-                    elapsed = (first_dt - session_start).days
-                    features["session_pct_at_intro"] = max(0.0, min(100.0,
-                        (elapsed / total_days) * 100))
+            total_days = (session_end - session_start).days or 1
+            elapsed = (first_dt - session_start).days
+            features["session_pct_at_intro"] = max(0.0, min(100.0,
+                (elapsed / total_days) * 100))
         except (ValueError, TypeError):
             pass
-
-    # Action density (last 30 days from today)
-    today = date.today()
-    cutoff_30 = (today - timedelta(days=30)).isoformat()
-    recent = [h for h in bill.history if (h.get("date") or "") >= cutoff_30]
-    features["action_density_30d"] = float(len(recent))
-
-    # State passage rate (from model weights)
-    features["state_passage_rate"] = state_passage_rate
 
     return features

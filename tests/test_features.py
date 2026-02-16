@@ -9,24 +9,34 @@ from legislator.model.features import (
     label_from_openstates,
     _extract_party, _normalize_party, _count_solar_categories, _parse_date,
 )
+from legislator.model.text_features import NUM_BUCKETS
 
 
 class TestFeatureNames:
     def test_total_count(self):
-        """73 features: 23 structured + 50 text hash."""
-        assert len(FEATURE_NAMES) == 73
+        """522 features: 22 structured + 500 text hash."""
+        assert len(FEATURE_NAMES) == 522
 
     def test_no_duplicates(self):
         assert len(FEATURE_NAMES) == len(set(FEATURE_NAMES))
 
     def test_removed_features_not_present(self):
-        """v2 removed passed_one_chamber and has_companion."""
+        """v2 removed passed_one_chamber and has_companion.
+        v3 removed days_since_introduction, action_density_30d, state_passage_rate."""
         assert "passed_one_chamber" not in FEATURE_NAMES
         assert "has_companion" not in FEATURE_NAMES
+        assert "days_since_introduction" not in FEATURE_NAMES
+        assert "action_density_30d" not in FEATURE_NAMES
+        assert "state_passage_rate" not in FEATURE_NAMES
+
+    def test_v3_features_present(self):
+        """v3 added days_to_first_committee and committee_speed."""
+        assert "days_to_first_committee" in FEATURE_NAMES
+        assert "committee_speed" in FEATURE_NAMES
 
     def test_text_hash_features_present(self):
         text_features = [f for f in FEATURE_NAMES if f.startswith("text_hash_")]
-        assert len(text_features) == 50
+        assert len(text_features) == NUM_BUCKETS
 
 
 class TestExtractParty:
@@ -178,16 +188,25 @@ class TestExtractFromOpenstates:
         assert features["committee_referral"] == 1.0
         assert features["committee_passage"] == 1.0
 
-    def test_num_actions_log_transformed(self):
+    def test_num_actions_capped_at_60_days(self):
+        """num_actions only counts actions within 60 days of introduction."""
         bill = self._make_bill()
         features = extract_from_openstates(bill)
-        assert features["num_actions"] == pytest.approx(math.log(4), rel=1e-4)
+        # first_action_date = 2025-01-10, cutoff = 2025-03-11
+        # Actions: Jan 10, Feb 5 (within 60d), Mar 20 (outside 60d)
+        assert features["num_actions"] == pytest.approx(math.log(3), rel=1e-4)
 
-    def test_days_since_introduction(self):
+    def test_days_to_first_committee(self):
         bill = self._make_bill()
         features = extract_from_openstates(bill)
-        # 2025-01-10 to 2025-03-20 = 69 days
-        assert features["days_since_introduction"] == 69.0
+        # 2025-01-10 (intro) to 2025-02-05 (referral-committee) = 26 days
+        assert features["days_to_first_committee"] == 26.0
+
+    def test_committee_speed(self):
+        bill = self._make_bill()
+        features = extract_from_openstates(bill)
+        # 2025-02-05 (referral-committee) to 2025-03-20 (committee-passage) = 43 days
+        assert features["committee_speed"] == 43.0
 
     def test_title_length(self):
         bill = self._make_bill(title="Solar Energy Act")
@@ -199,15 +218,10 @@ class TestExtractFromOpenstates:
         features = extract_from_openstates(bill)
         assert features["has_fiscal_note"] == 1.0
 
-    def test_state_passage_rate(self):
-        bill = self._make_bill()
-        features = extract_from_openstates(bill, state_passage_rate=0.25)
-        assert features["state_passage_rate"] == 0.25
-
     def test_text_hash_features_present(self):
         bill = self._make_bill()
         features = extract_from_openstates(bill)
-        for i in range(50):
+        for i in range(NUM_BUCKETS):
             assert f"text_hash_{i}" in features
 
     def test_all_features_present(self):

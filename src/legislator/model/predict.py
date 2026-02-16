@@ -9,14 +9,25 @@ v2 changes:
   - Uses optimal threshold from training instead of fixed 0.5
   - Passes state_passage_rate to feature extraction
   - Updated display names for new/removed features
+
+v3 changes:
+  - Platt scaling for calibrated probabilities
+  - State passage rate as post-hoc Bayesian prior (not a model feature)
+  - Resolution note when model was trained excluding resolutions
+  - 500 text hash features (up from 50)
+  - New features: days_to_first_committee, committee_speed
+  - Removed features: days_since_introduction, action_density_30d,
+    state_passage_rate
 """
 
 import json
 import math
+import re
 from pathlib import Path
 from typing import Optional
 
 from legislator.model.features import FEATURE_NAMES, extract_from_tracked_bill
+from legislator.model.text_features import TEXT_FEATURE_NAMES
 
 WEIGHTS_PATH = Path(__file__).parent / "weights.json"
 
@@ -52,13 +63,14 @@ def predict_passage(bill) -> Optional[dict]:
     """Predict passage likelihood for a TrackedBill.
 
     Returns dict with:
-      - probability: float 0.0-1.0 (raw model output)
+      - probability: float 0.0-1.0 (calibrated in v3+)
       - score: int 0-100 (percentage)
       - label: str (Very Likely, Likely, Possible, Unlikely, Very Unlikely)
       - feature_contributions: dict mapping feature names to their
         contribution to the score (weight * normalized_value)
       - model_metrics: dict with test set performance info
-      - model_version: int (1 or 2)
+      - model_version: int (1, 2, or 3)
+      - resolution_note: str (v3 only, if bill is a resolution)
 
     Returns None if no trained model is available.
     """
@@ -74,18 +86,19 @@ def predict_passage(bill) -> Optional[dict]:
     threshold = model.get("threshold", 0.5)
     feature_names = model.get("feature_names", FEATURE_NAMES)
 
-    # Get state passage rate for this bill's state (v2 only)
-    state_passage_rate = 0.0
-    if version >= 2:
+    # v2: pass state_passage_rate as a model feature
+    # v3: state_passage_rate removed from features, applied as post-hoc prior
+    if version == 2:
+        state_passage_rate = 0.0
         state_rates = model.get("state_passage_rates", {})
         bill_state = getattr(bill, "state", "")
         if bill_state:
             state_passage_rate = state_rates.get(bill_state.upper(), 0.0)
-
-    # Extract raw features
-    raw_features = extract_from_tracked_bill(
-        bill, state_passage_rate=state_passage_rate
-    )
+        raw_features = extract_from_tracked_bill(bill)
+        # v2 models still expect state_passage_rate in feature vector
+        raw_features["state_passage_rate"] = state_passage_rate
+    else:
+        raw_features = extract_from_tracked_bill(bill)
 
     # Normalize using training statistics
     normalized = []
@@ -96,7 +109,23 @@ def predict_passage(bill) -> Optional[dict]:
 
     # Compute logit
     z = sum(w * x for w, x in zip(weights, normalized)) + bias
+
+    # v3: apply Platt scaling for calibrated probabilities
+    if version >= 3:
+        cal_A = model.get("calibration_A", 1.0)
+        cal_B = model.get("calibration_B", 0.0)
+        z = cal_A * z + cal_B
+
     probability = _sigmoid(z)
+
+    # v3: blend with state passage rate as Bayesian prior
+    if version >= 3:
+        state_rates = model.get("state_passage_rates", {})
+        bill_state = getattr(bill, "state", "")
+        state_rate = state_rates.get(bill_state.upper(), 0.0) if bill_state else 0.0
+        if state_rate > 0:
+            probability = 0.9 * probability + 0.1 * state_rate
+
     score = max(0, min(100, round(probability * 100)))
 
     # Compute per-feature contributions
@@ -111,7 +140,6 @@ def predict_passage(bill) -> Optional[dict]:
     ))
 
     # Label based on threshold-adjusted score
-    # Map probability relative to threshold into label buckets
     if probability >= threshold + 0.25:
         label = "Very Likely"
     elif probability >= threshold + 0.05:
@@ -123,7 +151,7 @@ def predict_passage(bill) -> Optional[dict]:
     else:
         label = "Very Unlikely"
 
-    return {
+    result = {
         "probability": round(probability, 4),
         "score": score,
         "label": label,
@@ -136,6 +164,18 @@ def predict_passage(bill) -> Optional[dict]:
         "model_version": version,
         "threshold": threshold,
     }
+
+    # v3: note if bill is a resolution and model excluded resolutions
+    if version >= 3 and model.get("exclude_resolutions", False):
+        bn = getattr(bill, "bill_number", "") or ""
+        if re.search(r'\b(SJR|HJR|SR|HR|SCR|HCR)\b', bn.upper()):
+            result["resolution_note"] = (
+                "This is a resolution. The model was trained on substantive "
+                "legislation only; prediction may be less reliable for "
+                "resolutions."
+            )
+
+    return result
 
 
 def _describe_factor(feature_key: str, raw_value: float, direction: str) -> str:
@@ -205,7 +245,8 @@ def _describe_factor(feature_key: str, raw_value: float, direction: str) -> str:
             "Has not yet cleared committee"
         ),
         "num_actions": (
-            f"{int(round(v))} legislative action{'s' if round(v) != 1 else ''} on record"
+            f"{int(round(v))} legislative action{'s' if round(v) != 1 else ''} "
+            "in the first 60 days"
         ),
         "early_action_count": (
             f"{int(v)} action{'s' if v != 1 else ''} in the first 30 days — "
@@ -213,8 +254,11 @@ def _describe_factor(feature_key: str, raw_value: float, direction: str) -> str:
                "moderate early activity" if v >= 1 else
                "slow start out of the gate")
         ),
-        "days_since_introduction": (
-            f"Introduced {int(v)} day{'s' if v != 1 else ''} ago"
+        "days_to_first_committee": (
+            f"{int(v)} day{'s' if v != 1 else ''} from introduction to "
+            "committee referral"
+            + (" — quick committee action" if v <= 14 else
+               "" if v <= 60 else " — slow to reach committee")
         ),
         "session_pct_at_intro": (
             f"Introduced at the {v:.0%} mark of the session — "
@@ -222,11 +266,13 @@ def _describe_factor(feature_key: str, raw_value: float, direction: str) -> str:
                "mid-session introduction" if v <= 0.6 else
                "late introduction leaves little time")
         ),
-        "action_density_30d": (
-            f"Recent activity rate: {v:.1f} actions/day over 30 days — "
-            + ("very active" if v >= 0.3 else
-               "some recent activity" if v > 0 else
-               "no recent activity")
+        "committee_speed": (
+            f"{int(v)} day{'s' if v != 1 else ''} from committee referral "
+            "to passage"
+            + (" — fast committee action" if v <= 30 else
+               "" if v <= 90 else " — slow committee progress")
+            if v > 0 else
+            "Bill has not yet cleared committee"
         ),
         "title_length": f"Title is {int(v)} characters long",
         "has_fiscal_note": (
@@ -240,12 +286,6 @@ def _describe_factor(feature_key: str, raw_value: float, direction: str) -> str:
         "has_solar_keywords": (
             "Contains solar energy keywords" if v > 0 else
             "No solar-specific language detected"
-        ),
-        "state_passage_rate": (
-            f"This state passes {v:.0%} of introduced bills — "
-            + ("above average" if v >= 0.25 else
-               "below average" if v <= 0.15 else
-               "near the national average")
         ),
     }
 
@@ -283,19 +323,18 @@ def get_top_factors(prediction: dict, top_n: int = 5) -> list[dict]:
         "amends_existing_law": "Amends existing law",
         "committee_referral": "Committee referral",
         "committee_passage": "Cleared committee",
-        "num_actions": "Legislative actions",
+        "num_actions": "Early legislative actions",
         "early_action_count": "Early momentum (30d)",
-        "days_since_introduction": "Days active",
+        "days_to_first_committee": "Time to committee",
         "session_pct_at_intro": "Introduction timing",
-        "action_density_30d": "Recent activity (30d)",
+        "committee_speed": "Committee speed",
         "title_length": "Title complexity",
         "has_fiscal_note": "Fiscal impact",
         "solar_category_count": "Solar policy categories",
         "has_solar_keywords": "Solar relevance",
-        "state_passage_rate": "State passage rate",
     }
     # Text hash features get a generic name
-    for i in range(50):
+    for i in range(len(TEXT_FEATURE_NAMES)):
         display_names[f"text_hash_{i}"] = f"Text signal #{i}"
 
     factors = []
