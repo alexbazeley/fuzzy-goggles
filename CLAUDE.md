@@ -89,31 +89,34 @@ The `_extract_sponsors()` function in `checker.py` handles all these variants. I
 - Only HTML/text documents can be analyzed; PDFs are not decoded
 - Solar keyword categories are also used as model features (`solar_category_count`, `has_solar_keywords`)
 
-### Model v2 Architecture
-The prediction model was overhauled to address critical issues (feature leakage, training data gaps, weak methodology):
+### Model v3 Architecture
+The prediction model was overhauled in v2 and further improved in v3 to address evaluation findings (feature leakage, coarse text features, inflated accuracy from resolutions, uncalibrated probabilities).
 
-**Feature changes (18 → 73 features):**
-- Removed `passed_one_chamber` — tautological feature leakage (encoded outcome, not predictive signal)
-- Removed `has_companion` — always 0 for LegiScan bills
-- `num_actions` is now log-transformed to reduce conflation with outcome progress
-- Added `sponsor_party_majority` (fraction of sponsors in majority party — strongest predictor per literature)
-- Added `early_action_count` (actions in first 30 days — captures momentum without leakage)
-- Added `title_length`, `has_fiscal_note`, `solar_category_count`, `has_solar_keywords`, `state_passage_rate`
-- Added 50 text hash features via hashing trick in `text_features.py` (pure Python, deterministic djb2 hash)
+**Feature changes (18 → 73 → 522 features):**
+- v2: Removed `passed_one_chamber` (feature leakage) and `has_companion` (always 0)
+- v2: Added `sponsor_party_majority`, `early_action_count`, `title_length`, `has_fiscal_note`, `solar_category_count`, `has_solar_keywords`
+- v3: Removed `days_since_introduction` (temporal leakage) → replaced with `days_to_first_committee` (days from intro to committee referral)
+- v3: Removed `action_density_30d` (temporal leakage) → replaced with `committee_speed` (days from committee referral to passage)
+- v3: Removed `state_passage_rate` from features (tautological) → moved to post-hoc Bayesian prior in `predict.py`
+- v3: `num_actions` capped at 60-day window from introduction to prevent leakage
+- v3: Text hash expanded from 50 → 500 buckets with bigram support (e.g. "net_metering", "tax_credit")
+- Total: 22 structured + 500 text hash = 522 features
 
 **Training methodology:**
 - Numpy-vectorized gradient descent (~100x faster than v2.0 pure-Python loops)
 - `--max-bills N` CLI flag to sample a subset for faster iteration
 - 5-fold cross-validation stratified by state (via `_stratified_kfold()`)
-- Tighter default hyperparameter grid (24 combos): lr ∈ {0.05, 0.1}, L2 ∈ {0.001, 0.01, 0.1}, L1 ∈ {0.0, 0.01}, epochs = 1000, beta ∈ {0.4, 0.5}
-- Early stopping with patience=50 on validation loss (makes large epoch counts redundant)
-- Elastic net (L1 + L2) regularization — L1 drives irrelevant features to exactly zero
-- Threshold tuning: searches 0.10–0.90 to maximize F1 instead of fixed 0.5 cutoff
-- Session dates estimated from per-session action date ranges (not Jan 1–Dec 31)
-- State passage rates computed and stored in `weights.json`
+- v3 hyperparameter grid (72 combos): lr ∈ {0.05, 0.1}, L2 ∈ {0.001, 0.01, 0.1}, L1 ∈ {0.0, 0.001, 0.01, 0.1}, epochs = 1000, beta ∈ {0.3, 0.4, 0.5}
+- Early stopping with patience=50 on validation loss
+- Elastic net (L1 + L2) regularization — wider L1 range enables sparsity with 500 text features
+- Threshold tuning: searches 0.10–0.90 to maximize F1
+- v3: Resolutions excluded by default (`--include-resolutions` to opt in) — focuses model on substantive legislation
+- v3: Stratified train/calibration/test split (80/10/10) ensures representative state coverage
+- v3: Platt scaling on separate calibration set for well-calibrated output probabilities
+- State passage rates computed and stored in `weights.json` (used as post-hoc prior, not model feature)
 - Requires `numpy` (listed in `requirements.txt`)
 
-**weights.json v2 format** adds: `version`, `threshold`, `state_passage_rates`, `hyperparameters`, `cv_metrics`, `text_hash_buckets`. `predict.py` is backward-compatible with v1 files (checks `model.get("version", 1)`).
+**weights.json v3 format** adds: `version` (3), `threshold`, `state_passage_rates`, `hyperparameters`, `cv_metrics`, `text_hash_buckets` (500), `calibration_A`, `calibration_B`, `exclude_resolutions`. `predict.py` is backward-compatible with v1/v2 files (checks `model.get("version", 1)`).
 
 **Label improvements in `label_from_openstates()`:**
 - Now accepts `session_end_date` parameter — returns `None` (indeterminate) if session is still active
@@ -150,8 +153,11 @@ PYTHONPATH=src python -m legislator.model.export_pg
 # Or export specific states:
 PYTHONPATH=src python -m legislator.model.export_pg --states CA,NY,TX,FL,PA
 
-# 4. Train the model:
+# 4. Train the model (resolutions excluded by default):
 PYTHONPATH=src python -m legislator.model.train
+
+# Or include resolutions in training:
+PYTHONPATH=src python -m legislator.model.train --include-resolutions
 ```
 
 The export script writes JSON files to `src/legislator/model/data/` (one file per state-session). The key advantage over JSON bulk exports is that the PostgreSQL dump includes `person.primary_party` on sponsorships, which enables the sponsor-related model features (bipartisan, party majority, etc.).
@@ -162,7 +168,7 @@ Alternative: you can also place Open States JSON files directly in `src/legislat
 
 ### Automated tests
 
-Run the test suite (168 tests, no API keys needed):
+Run the test suite (176 tests, no API keys needed):
 
 ```bash
 PYTHONPATH=src pytest tests/ -v
@@ -193,5 +199,5 @@ For UI/integration changes, test manually by:
 - **New fields on TrackedBill**: Add to the dataclass, add to `load_tracked_bills()` with a `.get()` default, and update the frontend
 - **New API endpoints**: Add inside `create_app()` in `app.py`
 - **Frontend changes**: Edit `src/legislator/static/index.html`
-- **Model features**: Add to `FEATURE_NAMES` in `features.py`, implement in both `extract_from_openstates()` and `extract_from_tracked_bill()`, update `display_names` in `predict.py:get_top_factors()`, and update `dimension_groups` in `scoring.py:_compute_model_score()`
+- **Model features**: Add to `FEATURE_NAMES` in `features.py`, implement in both `extract_from_openstates()` and `extract_from_tracked_bill()`, update `display_names` and `_describe_factor()` in `predict.py:get_top_factors()`, and update `dimension_groups` in `scoring.py:_compute_model_score()`. Bump `version` in `save_weights()` in `train.py` if changing the feature vector format
 - **Always update README.md and CLAUDE.md** when adding user-facing features, new env vars, or model changes

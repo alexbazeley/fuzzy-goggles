@@ -11,7 +11,7 @@ import re
 from typing import List
 
 # Number of hash buckets for text features
-NUM_BUCKETS = 50
+NUM_BUCKETS = 500
 
 # Feature names for the hash buckets
 TEXT_FEATURE_NAMES = [f"text_hash_{i}" for i in range(NUM_BUCKETS)]
@@ -46,15 +46,20 @@ _STOPWORDS = frozenset({
 _TOKEN_RE = re.compile(r'[a-z][a-z0-9]+')
 
 
-def tokenize(text: str) -> List[str]:
-    """Tokenize text into lowercase alphanumeric tokens.
+def tokenize(text: str, bigrams: bool = True) -> List[str]:
+    """Tokenize text into lowercase alphanumeric tokens with optional bigrams.
 
     Removes stopwords and tokens shorter than 3 characters.
+    When bigrams=True, appends adjacent-token bigrams (e.g. "net_metering").
     """
     if not text:
         return []
     tokens = _TOKEN_RE.findall(text.lower())
-    return [t for t in tokens if len(t) >= 3 and t not in _STOPWORDS]
+    unigrams = [t for t in tokens if len(t) >= 3 and t not in _STOPWORDS]
+    if bigrams and len(unigrams) >= 2:
+        bi = [f"{unigrams[i]}_{unigrams[i+1]}" for i in range(len(unigrams) - 1)]
+        return unigrams + bi
+    return unigrams
 
 
 def _stable_hash(s: str) -> int:

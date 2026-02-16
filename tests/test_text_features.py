@@ -48,6 +48,29 @@ class TestTokenize:
         assert "section42" in tokens
         assert "rule3b" in tokens
 
+    def test_bigrams_generated(self):
+        """Bigrams are appended when bigrams=True (default)."""
+        tokens = tokenize("solar energy development")
+        assert "solar_energy" in tokens
+        assert "energy_development" in tokens
+        # Unigrams still present
+        assert "solar" in tokens
+        assert "energy" in tokens
+        assert "development" in tokens
+
+    def test_bigrams_disabled(self):
+        """No bigrams when bigrams=False."""
+        tokens = tokenize("solar energy development", bigrams=False)
+        assert "solar_energy" not in tokens
+        assert "solar" in tokens
+
+    def test_bigrams_single_token(self):
+        """No bigrams when only one unigram remains after filtering."""
+        tokens = tokenize("the solar")  # "the" is a stopword
+        assert "solar" in tokens
+        # No bigrams possible with a single unigram
+        assert all("_" not in t for t in tokens)
+
 
 class TestStableHash:
     def test_deterministic(self):

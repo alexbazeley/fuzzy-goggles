@@ -36,6 +36,17 @@ v2.1 performance improvements:
     - Numpy-vectorized training loop (~100x faster than pure Python)
     - --max-bills flag to sample a subset for faster iteration
     - Tighter default hyperparameter grid (24 combos vs 243)
+
+v3 improvements:
+    - Resolutions excluded by default (--include-resolutions to opt in)
+    - Expanded hyperparameter grid (72 combos): L1 [0, 0.001, 0.01, 0.1],
+      beta [0.3, 0.4, 0.5]
+    - Stratified train/calibration/test split (80/10/10)
+    - Platt scaling for probability calibration
+    - state_passage_rate moved from model feature to post-hoc prior
+    - Feature leakage fixes: num_actions capped at 60-day window,
+      days_since_introduction → days_to_first_committee,
+      action_density_30d → committee_speed
 """
 
 import argparse
@@ -258,12 +269,18 @@ def _compute_state_passage_rates(bills: list[dict]) -> dict:
     return rates
 
 
-def prepare_dataset(bills: list[dict]) -> tuple:
+def prepare_dataset(bills: list[dict],
+                    exclude_resolutions: bool = True) -> tuple:
     """Extract features and labels from raw Open States bill data.
 
     Returns (X, y, states, state_passage_rates) where X is a numpy array
     of feature vectors, y is a numpy array of labels, and states is a list
     of state abbreviations (for stratified CV).
+
+    Args:
+        bills: List of Open States bill dicts.
+        exclude_resolutions: If True (default), skip resolutions to focus
+            on substantive legislation.
     """
     # Pre-compute session dates and state passage rates
     print("  Estimating session dates...")
@@ -274,11 +291,19 @@ def prepare_dataset(bills: list[dict]) -> tuple:
     X = []
     y = []
     states = []
+    n_resolutions_skipped = 0
 
     total = len(bills)
     for i, bill in enumerate(bills):
         if i % 50000 == 0 and i > 0:
             print(f"  Processed {i}/{total} bills ({len(X)} labeled so far)...")
+
+        # Filter resolutions if requested
+        if exclude_resolutions:
+            classification = bill.get("classification", [])
+            if any("resolution" in c for c in classification):
+                n_resolutions_skipped += 1
+                continue
 
         state = _get_bill_state(bill)
         session = _get_bill_session(bill)
@@ -299,17 +324,16 @@ def prepare_dataset(bills: list[dict]) -> tuple:
         if not actions:
             continue
 
-        # State passage rate for this bill's state
-        spr = state_passage_rates.get(state, 0.0)
-
         features = extract_from_openstates(
             bill, session_start, session_end,
-            state_passage_rate=spr,
         )
         vec = [features[name] for name in FEATURE_NAMES]
         X.append(vec)
         y.append(label)
         states.append(state)
+
+    if n_resolutions_skipped:
+        print(f"  Skipped {n_resolutions_skipped} resolutions")
 
     return np.array(X, dtype=np.float64), np.array(y, dtype=np.float64), states, state_passage_rates
 
@@ -622,17 +646,18 @@ def hyperparameter_search(X_norm: np.ndarray, y: np.ndarray,
 
     Returns dict with best hyperparameters and CV metrics.
 
-    The default grid has 24 combos (was 243 in v2) — early stopping
-    makes large epoch counts unnecessary, and the grid focuses on
-    the parameters that matter most (lr, regularization, class weight).
+    The default grid has 72 combos — early stopping makes large epoch
+    counts unnecessary, and the grid focuses on the parameters that
+    matter most (lr, regularization, class weight).
     """
-    # Tighter grid: 2*3*2*1*2 = 24 combos (was 3*3*3*3*3 = 243)
-    # Early stopping handles epoch count, so we fix it at 1000.
+    # v3 grid: 2*3*4*1*3 = 72 combos
+    # Wider L1 range to enable sparsity with 500 text hash features.
+    # Added beta=0.3 for less aggressive positive class upweighting.
     lr_grid = [0.05, 0.1]
     l2_grid = [0.001, 0.01, 0.1]
-    l1_grid = [0.0, 0.01]
+    l1_grid = [0.0, 0.001, 0.01, 0.1]
     epoch_grid = [1000]
-    beta_grid = [0.4, 0.5]
+    beta_grid = [0.3, 0.4, 0.5]
 
     best_f1 = 0.0
     best_params = {}
@@ -679,20 +704,51 @@ def hyperparameter_search(X_norm: np.ndarray, y: np.ndarray,
     }
 
 
+def _fit_platt_scaling(X: np.ndarray, y: np.ndarray,
+                       w: np.ndarray, b: float) -> tuple[float, float]:
+    """Fit Platt scaling calibration: calibrated_p = sigmoid(A * logit + B).
+
+    Fits A and B parameters via gradient descent on log-loss using the
+    calibration set. This produces well-calibrated output probabilities.
+
+    Returns (A, B) tuple.
+    """
+    z = X @ w + b  # raw logits
+    A, B = 1.0, 0.0
+    lr_cal = 0.01
+
+    for _ in range(2000):
+        cal_z = A * z + B
+        cal_p = 1.0 / (1.0 + np.exp(-np.clip(cal_z, -500, 500)))
+        cal_p = np.clip(cal_p, 1e-7, 1 - 1e-7)
+        err = cal_p - y
+        dA = (err * z).mean()
+        dB = err.mean()
+        A -= lr_cal * dA
+        B -= lr_cal * dB
+
+    return float(A), float(B)
+
+
 def save_weights(w, b: float,
                  means, stds,
                  metrics: dict, threshold: float = 0.5,
                  state_passage_rates: Optional[dict] = None,
                  hyperparameters: Optional[dict] = None,
                  cv_metrics: Optional[dict] = None,
+                 calibration_A: float = 1.0,
+                 calibration_B: float = 0.0,
+                 exclude_resolutions: bool = True,
                  path: Path = WEIGHTS_PATH):
     """Save trained model weights, normalization params, and metrics to JSON."""
+    from legislator.model.text_features import NUM_BUCKETS
+
     # Convert numpy arrays to plain lists for JSON serialization
     w_list = w.tolist() if hasattr(w, 'tolist') else list(w)
     means_list = means.tolist() if hasattr(means, 'tolist') else list(means)
     stds_list = stds.tolist() if hasattr(stds, 'tolist') else list(stds)
     model = {
-        "version": 2,
+        "version": 3,
         "feature_names": FEATURE_NAMES,
         "weights": w_list,
         "bias": float(b),
@@ -708,7 +764,10 @@ def save_weights(w, b: float,
             "mean_precision": cv_metrics.get("mean_precision", 0) if cv_metrics else 0,
             "mean_recall": cv_metrics.get("mean_recall", 0) if cv_metrics else 0,
         },
-        "text_hash_buckets": 50,
+        "text_hash_buckets": NUM_BUCKETS,
+        "calibration_A": calibration_A,
+        "calibration_B": calibration_B,
+        "exclude_resolutions": exclude_resolutions,
         "trained_at": date.today().isoformat(),
     }
     with open(path, "w") as f:
@@ -723,6 +782,10 @@ def main():
         "--max-bills", type=int, default=None,
         help="Max number of raw bills to use (randomly sampled). "
              "Useful for faster iteration on large datasets.")
+    parser.add_argument(
+        "--include-resolutions", action="store_true",
+        help="Include resolutions in training data. By default they are "
+             "excluded to focus the model on substantive legislation.")
     args = parser.parse_args()
 
     # 1. Load local data
@@ -765,7 +828,11 @@ def main():
     print("\n" + "=" * 60)
     print("Step 2: Extracting features")
     print("=" * 60)
-    X, y, states, state_passage_rates = prepare_dataset(bills)
+    exclude_resolutions = not args.include_resolutions
+    X, y, states, state_passage_rates = prepare_dataset(
+        bills, exclude_resolutions=exclude_resolutions)
+    if exclude_resolutions:
+        print("  (Resolutions excluded — use --include-resolutions to include)")
 
     if len(y) == 0:
         print("Error: Could not extract any labeled bills from the data.")
@@ -814,22 +881,26 @@ def main():
     print(f"CV Precision: {cv_metrics['mean_precision']:.4f}")
     print(f"CV Recall: {cv_metrics['mean_recall']:.4f}")
 
-    # 5. Final training on full dataset with best hyperparameters
+    # 5. Final training with best hyperparameters
     print("\n" + "=" * 60)
     print("Step 4: Final training with best hyperparameters")
     print("=" * 60)
 
-    # Split into train/test (80/20) with shuffling
-    rng = random.Random(42)
-    n = len(X_norm)
-    indices = list(range(n))
-    rng.shuffle(indices)
-    split = int(n * 0.8)
-    train_idx = np.array(indices[:split])
-    test_idx = np.array(indices[split:])
+    # Stratified train/calibration/test split (80/10/10)
+    # Use k=10 folds: fold 0 = test, fold 1 = calibration, folds 2-9 = train
+    folds = _stratified_kfold(states, k=10, seed=42)
+    test_idx = folds[0][1]
+    cal_idx = folds[1][1]
+    all_indices = set(range(len(X_norm)))
+    train_idx = np.array(sorted(
+        all_indices - set(test_idx.tolist()) - set(cal_idx.tolist())))
 
     X_train, y_train = X_norm[train_idx], y[train_idx]
+    X_cal, y_cal = X_norm[cal_idx], y[cal_idx]
     X_test, y_test = X_norm[test_idx], y[test_idx]
+
+    print(f"Split: {len(X_train)} train, {len(X_cal)} calibration, "
+          f"{len(X_test)} test")
 
     # Validation set from training for early stopping
     val_size = max(1, len(X_train) // 10)
@@ -860,11 +931,16 @@ def main():
         patience=50,
     )
 
-    # 6. Find best threshold
+    # 6. Find best threshold on validation set
     threshold = _find_best_threshold(X_val, y_val, w, b)
     print(f"\nOptimal threshold: {threshold:.2f}")
 
-    # 7. Evaluate
+    # 7. Platt scaling calibration on held-out calibration set
+    print("\nFitting Platt scaling on calibration set...")
+    cal_A, cal_B = _fit_platt_scaling(X_cal, y_cal, w, b)
+    print(f"Calibration parameters: A={cal_A:.4f}, B={cal_B:.4f}")
+
+    # 8. Evaluate on test set (uncontaminated by calibration)
     print("\n" + "=" * 60)
     print("Step 5: Evaluation")
     print("=" * 60)
@@ -873,7 +949,7 @@ def main():
     print(f"Train: {train_metrics}")
     print(f"Test:  {test_metrics}")
 
-    # 8. Print feature importances
+    # 9. Print feature importances
     print("\nFeature weights (descending by absolute value):")
     w_list = w.tolist() if hasattr(w, 'tolist') else list(w)
     weighted = sorted(zip(FEATURE_NAMES, w_list), key=lambda x: abs(x[1]), reverse=True)
@@ -887,13 +963,16 @@ def main():
     print(f"\n{nonzero}/{len(w)} features with non-zero weights "
           f"({len(w) - nonzero} driven to zero by L1)")
 
-    # 9. Save
+    # 10. Save
     save_weights(
         w, b, means, stds, test_metrics,
         threshold=threshold,
         state_passage_rates=state_passage_rates,
         hyperparameters=best_params,
         cv_metrics=cv_metrics,
+        calibration_A=cal_A,
+        calibration_B=cal_B,
+        exclude_resolutions=exclude_resolutions,
     )
 
 
