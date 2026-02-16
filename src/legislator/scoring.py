@@ -384,64 +384,23 @@ def _compute_model_score(bill: TrackedBill) -> Optional[dict]:
     if prediction is None:
         return None
 
-    # Build dimension-like breakdown from feature contributions
-    # Group features into logical dimensions for the UI
-    dimension_groups = {
-        "sponsors": {
-            "label": "Sponsor Strength",
-            "features": ["sponsor_count", "primary_sponsor_count",
-                         "cosponsor_count", "sponsor_party_majority"],
-        },
-        "bipartisan": {
-            "label": "Bipartisan Support",
-            "features": ["is_bipartisan", "minority_party_sponsors"],
-        },
-        "procedural": {
-            "label": "Procedural Progress",
-            "features": ["committee_referral", "committee_passage"],
-        },
-        "momentum": {
-            "label": "Momentum",
-            "features": ["num_actions", "early_action_count",
-                         "days_since_introduction", "action_density_30d"],
-        },
-        "timing": {
-            "label": "Session Timing",
-            "features": ["session_pct_at_intro"],
-        },
-        "structure": {
-            "label": "Bill Structure",
-            "features": ["senate_origin", "is_resolution", "num_subjects",
-                         "focused_scope", "amends_existing_law",
-                         "title_length", "has_fiscal_note",
-                         "state_passage_rate"],
-        },
-        "text_signal": {
-            "label": "Text Signal",
-            "features": [f"text_hash_{i}" for i in range(50)]
-                        + ["solar_category_count", "has_solar_keywords"],
-        },
-    }
+    # Get structured factors with descriptions from the model
+    top = get_top_factors(prediction, top_n=8)
 
-    contribs = prediction["feature_contributions"]
-    dimensions = {}
-    for dim_key, group in dimension_groups.items():
-        total_contrib = sum(contribs.get(f, 0) for f in group["features"])
-        # Normalize contribution to a 0-10 display scale
-        # Positive contributions help, negative hurt
-        display_score = max(0, min(10, round((total_contrib + 5) * 1)))
-        dimensions[dim_key] = {
-            "score": display_score,
-            "max": 10,
-            "detail": f"{group['label']}: {total_contrib:+.2f} contribution",
-        }
-
-    # Build factors from top contributors
-    top = get_top_factors(prediction, top_n=6)
+    # Build structured factor objects for the frontend
     factors = []
     for f in top:
-        direction = "helps" if f["direction"] == "positive" else "hurts"
-        factors.append(f"{f['feature']}: {direction} ({f['contribution']:+.3f})")
+        factors.append({
+            "name": f["feature"],
+            "key": f["feature_key"],
+            "contribution": round(f["contribution"], 3),
+            "direction": f["direction"],
+            "raw_value": f["raw_value"],
+            "description": f.get("description", ""),
+        })
+
+    # Compute max absolute contribution for bar scaling on frontend
+    max_contrib = max((abs(f["contribution"]) for f in factors), default=1.0)
 
     confidence = _compute_confidence(bill)
 
@@ -451,13 +410,26 @@ def _compute_model_score(bill: TrackedBill) -> Optional[dict]:
     heuristic_dims["bipartisan"] = dim_bipartisan_check
     risks = _collect_risks(bill, heuristic_dims)
 
+    # Summary sentence based on score
+    score = prediction["score"]
+    label_text = prediction["label"]
+    if score >= 75:
+        summary = "This bill has strong fundamentals and is well-positioned to pass."
+    elif score >= 50:
+        summary = "This bill has a reasonable chance — some factors help, some don't."
+    elif score >= 30:
+        summary = "This bill faces headwinds. Key factors are working against it."
+    else:
+        summary = "This bill has an uphill battle. Most indicators point to failure."
+
     return {
-        "score": prediction["score"],
-        "label": prediction["label"],
+        "score": score,
+        "label": label_text,
         "confidence": confidence,
-        "dimensions": dimensions,
         "factors": factors,
+        "max_contribution": round(max_contrib, 3),
         "risks": risks,
+        "summary": summary,
         "model": "trained",
         "model_metrics": prediction.get("model_metrics", {}),
         "trained_at": prediction.get("trained_at", ""),
