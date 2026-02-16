@@ -27,7 +27,7 @@ from pathlib import Path
 from typing import Optional
 
 from legislator.model.features import FEATURE_NAMES, extract_from_tracked_bill
-from legislator.model.text_features import TEXT_FEATURE_NAMES
+from legislator.model.text_features import TEXT_FEATURE_NAMES, reverse_hash_map
 
 WEIGHTS_PATH = Path(__file__).parent / "weights.json"
 
@@ -151,6 +151,15 @@ def predict_passage(bill) -> Optional[dict]:
     else:
         label = "Very Unlikely"
 
+    # Build reverse hash map so we can show which tokens drive each text bucket
+    title_raw = getattr(bill, "title", "") or ""
+    description_raw = getattr(bill, "description", "") or ""
+    full_text = f"{title_raw} {description_raw}".strip()
+    bucket_tokens = reverse_hash_map(full_text)
+    text_hash_tokens = {}
+    for idx, token_list in bucket_tokens.items():
+        text_hash_tokens[f"text_hash_{idx}"] = [t for t, _sign in token_list]
+
     result = {
         "probability": round(probability, 4),
         "score": score,
@@ -158,6 +167,7 @@ def predict_passage(bill) -> Optional[dict]:
         "feature_contributions": sorted_contributions,
         "raw_features": {name: raw_features.get(name, 0.0)
                          for name in feature_names},
+        "text_hash_tokens": text_hash_tokens,
         "model_metrics": model.get("metrics", {}),
         "cv_metrics": model.get("cv_metrics", {}),
         "trained_at": model.get("trained_at", "unknown"),
@@ -178,7 +188,13 @@ def predict_passage(bill) -> Optional[dict]:
     return result
 
 
-def _describe_factor(feature_key: str, raw_value: float, direction: str) -> str:
+def _format_token(token: str) -> str:
+    """Format a token for display: replace underscores with spaces for bigrams."""
+    return token.replace("_", " ")
+
+
+def _describe_factor(feature_key: str, raw_value: float, direction: str,
+                     tokens: list[str] | None = None) -> str:
     """Generate a plain-English contextual description for a factor."""
     v = raw_value
     pos = direction == "positive"
@@ -292,7 +308,13 @@ def _describe_factor(feature_key: str, raw_value: float, direction: str) -> str:
     if feature_key in descriptions:
         return descriptions[feature_key]
     if feature_key.startswith("text_hash_"):
-        return "Language pattern in the bill text " + ("associated with passage" if pos else "associated with failure")
+        if tokens:
+            formatted = [_format_token(t) for t in tokens[:3]]
+            quoted = ", ".join(f"'{t}'" for t in formatted)
+            return (f"Bill text contains {quoted} — language pattern "
+                    + ("associated with passage" if pos else "associated with failure"))
+        return ("Language pattern in the bill text "
+                + ("associated with passage" if pos else "associated with failure"))
     return ""
 
 
@@ -307,6 +329,7 @@ def get_top_factors(prediction: dict, top_n: int = 5) -> list[dict]:
 
     contribs = prediction["feature_contributions"]
     raw = prediction.get("raw_features", {})
+    text_hash_tokens = prediction.get("text_hash_tokens", {})
 
     # Human-readable feature names
     display_names = {
@@ -333,9 +356,6 @@ def get_top_factors(prediction: dict, top_n: int = 5) -> list[dict]:
         "solar_category_count": "Solar policy categories",
         "has_solar_keywords": "Solar relevance",
     }
-    # Text hash features get a generic name
-    for i in range(len(TEXT_FEATURE_NAMES)):
-        display_names[f"text_hash_{i}"] = f"Text signal #{i}"
 
     factors = []
     for name, contrib in contribs.items():
@@ -344,13 +364,22 @@ def get_top_factors(prediction: dict, top_n: int = 5) -> list[dict]:
             continue
         direction = "positive" if contrib > 0 else "negative"
         raw_val = raw.get(name, 0)
+
+        # For text hash features, build display name from actual tokens
+        tokens = text_hash_tokens.get(name)
+        if name.startswith("text_hash_") and tokens:
+            formatted = [_format_token(t) for t in tokens[:3]]
+            display = "Text: " + ", ".join(formatted)
+        else:
+            display = display_names.get(name, name)
+
         factors.append({
-            "feature": display_names.get(name, name),
+            "feature": display,
             "feature_key": name,
             "contribution": contrib,
             "direction": direction,
             "raw_value": raw_val,
-            "description": _describe_factor(name, raw_val, direction),
+            "description": _describe_factor(name, raw_val, direction, tokens),
         })
 
     # Return top N by absolute contribution
