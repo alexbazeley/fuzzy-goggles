@@ -97,6 +97,24 @@ def feature_hash(tokens: List[str], num_buckets: int = NUM_BUCKETS) -> List[floa
     return buckets
 
 
+def reverse_hash_map(text: str, num_buckets: int = NUM_BUCKETS) -> dict:
+    """Return mapping of bucket index → list of (token, sign) tuples for a given text.
+
+    Useful for interpreting which tokens from a specific bill contribute
+    to each text hash bucket.
+    """
+    tokens = tokenize(text)
+    mapping = {}
+    for token in tokens:
+        h = _stable_hash(token)
+        idx = h % num_buckets
+        sign = 1.0 if (h >> 16) & 1 == 0 else -1.0
+        if idx not in mapping:
+            mapping[idx] = []
+        mapping[idx].append((token, sign))
+    return mapping
+
+
 def extract_text_features(text: str, num_buckets: int = NUM_BUCKETS) -> List[float]:
     """Full pipeline: tokenize text and return hashed feature vector.
 

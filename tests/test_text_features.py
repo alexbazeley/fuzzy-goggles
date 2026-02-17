@@ -3,7 +3,7 @@
 import pytest
 
 from legislator.model.text_features import (
-    tokenize, feature_hash, extract_text_features,
+    tokenize, feature_hash, extract_text_features, reverse_hash_map,
     _stable_hash, NUM_BUCKETS, TEXT_FEATURE_NAMES,
 )
 
@@ -134,3 +134,44 @@ class TestExtractTextFeatures:
         assert len(TEXT_FEATURE_NAMES) == NUM_BUCKETS
         assert TEXT_FEATURE_NAMES[0] == "text_hash_0"
         assert TEXT_FEATURE_NAMES[-1] == f"text_hash_{NUM_BUCKETS - 1}"
+
+
+class TestReverseHashMap:
+    def test_basic_mapping(self):
+        """Tokens should map to buckets consistently."""
+        mapping = reverse_hash_map("solar energy development")
+        # Flatten all tokens from the mapping
+        all_tokens = []
+        for token_list in mapping.values():
+            all_tokens.extend(t for t, _sign in token_list)
+        assert "solar" in all_tokens
+        assert "energy" in all_tokens
+        assert "development" in all_tokens
+
+    def test_bigrams_included(self):
+        """Bigrams should appear in the mapping."""
+        mapping = reverse_hash_map("solar energy development")
+        all_tokens = []
+        for token_list in mapping.values():
+            all_tokens.extend(t for t, _sign in token_list)
+        assert "solar_energy" in all_tokens
+        assert "energy_development" in all_tokens
+
+    def test_consistent_with_feature_hash(self):
+        """Buckets in reverse_hash_map should match feature_hash output."""
+        text = "net metering incentives for renewable energy"
+        mapping = reverse_hash_map(text)
+        features = extract_text_features(text)
+        # Every bucket in the mapping should have a non-zero feature value
+        for idx in mapping:
+            assert features[idx] != 0.0
+
+    def test_empty_input(self):
+        assert reverse_hash_map("") == {}
+
+    def test_sign_included(self):
+        """Each entry should include a sign (+1.0 or -1.0)."""
+        mapping = reverse_hash_map("solar energy")
+        for token_list in mapping.values():
+            for _token, sign in token_list:
+                assert sign in (1.0, -1.0)

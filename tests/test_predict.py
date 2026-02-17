@@ -75,6 +75,37 @@ class TestGetTopFactors:
         keys = [f["feature_key"] for f in factors]
         assert "text_hash_0" not in keys
 
+    def test_text_hash_shows_tokens(self):
+        """Text hash features should show actual tokens when available."""
+        prediction = {
+            "feature_contributions": {
+                "text_hash_42": 0.15,
+                "sponsor_count": 0.5,
+            },
+            "raw_features": {"text_hash_42": 1.0, "sponsor_count": 5.0},
+            "text_hash_tokens": {
+                "text_hash_42": ["solar", "net_metering"],
+            },
+        }
+        factors = get_top_factors(prediction, top_n=10)
+        text_factor = [f for f in factors if f["feature_key"] == "text_hash_42"][0]
+        assert text_factor["feature"] == "Text: solar, net metering"
+        assert "solar" in text_factor["description"]
+        assert "net metering" in text_factor["description"]
+
+    def test_text_hash_without_tokens_fallback(self):
+        """Text hash features without token data should use generic name."""
+        prediction = {
+            "feature_contributions": {
+                "text_hash_99": 0.1,
+            },
+            "raw_features": {"text_hash_99": 1.0},
+        }
+        factors = get_top_factors(prediction, top_n=10)
+        text_factor = factors[0]
+        assert text_factor["feature"] == "text_hash_99"
+        assert "Language pattern" in text_factor["description"]
+
 
 class TestPredictPassage:
     @pytest.fixture
@@ -125,6 +156,24 @@ class TestPredictPassage:
             assert "feature_contributions" in result
             assert result["model_version"] == 3
             assert result["threshold"] == 0.5
+        finally:
+            predict_mod._model_cache = old_cache
+
+    def test_text_hash_tokens_in_result(self, sample_bill, mock_model_v3):
+        """predict_passage should include text_hash_tokens mapping."""
+        import legislator.model.predict as predict_mod
+        old_cache = predict_mod._model_cache
+        predict_mod._model_cache = mock_model_v3
+        try:
+            result = predict_passage(sample_bill)
+            assert "text_hash_tokens" in result
+            # The sample bill has title and description, so tokens should exist
+            assert len(result["text_hash_tokens"]) > 0
+            # Each entry should be a list of strings
+            for key, tokens in result["text_hash_tokens"].items():
+                assert key.startswith("text_hash_")
+                assert isinstance(tokens, list)
+                assert all(isinstance(t, str) for t in tokens)
         finally:
             predict_mod._model_cache = old_cache
 
