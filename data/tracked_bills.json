@@ -97,28 +97,202 @@
     "title": "Authorizing community solar programs and granting rule-making authority. (FE)",
     "url": "https://legiscan.com/WI/bill/AB493/2025",
     "state_link": "https://docs.legis.wisconsin.gov/2025/proposals/reg/asm/bill/ab493",
-    "change_hash": "e94812bf4d3e794c283025d3ae7b04ab",
+    "change_hash": "c3b3bd617a97a80fc60412a740594a5c",
     "status": 1,
-    "last_history_date": "2026-01-21",
-    "last_history_action": "Public hearing held",
+    "last_history_date": "2026-02-18",
+    "last_history_action": "Assembly Substitute Amendment 1 offered by Representatives Krug, Tranel, Moses, Behnke, Kitchens, Murphy, Mursau, Pronschinske and VanderMeer",
     "progress_events": [
       1,
       9,
       9
     ],
-    "progress_details": [],
+    "progress_details": [
+      {
+        "event": 1,
+        "date": "2025-10-09"
+      },
+      {
+        "event": 9,
+        "date": "2025-10-09"
+      },
+      {
+        "event": 9,
+        "date": "2026-01-12"
+      }
+    ],
     "priority": "medium",
-    "sponsors": [],
-    "calendar": [],
-    "session_id": 0,
-    "session_name": "",
-    "session_year_start": 0,
-    "session_year_end": 0,
-    "description": "",
+    "sponsors": [
+      {
+        "people_id": 12267,
+        "name": "Scott Krug",
+        "party": "R",
+        "role": "Rep",
+        "sponsor_type": "Primary Sponsor"
+      },
+      {
+        "people_id": 23591,
+        "name": "Nate Gustafson",
+        "party": "R",
+        "role": "Rep",
+        "sponsor_type": "Primary Sponsor"
+      },
+      {
+        "people_id": 20178,
+        "name": "Barbara Dittrich",
+        "party": "R",
+        "role": "Rep",
+        "sponsor_type": "Primary Sponsor"
+      },
+      {
+        "people_id": 19637,
+        "name": "Rick Gundrum",
+        "party": "R",
+        "role": "Rep",
+        "sponsor_type": "Primary Sponsor"
+      },
+      {
+        "people_id": 23595,
+        "name": "Dave Maxey",
+        "party": "R",
+        "role": "Rep",
+        "sponsor_type": "Primary Sponsor"
+      },
+      {
+        "people_id": 24954,
+        "name": "Paul Melotik",
+        "party": "R",
+        "role": "Rep",
+        "sponsor_type": "Primary Sponsor"
+      },
+      {
+        "people_id": 15096,
+        "name": "David Murphy",
+        "party": "R",
+        "role": "Rep",
+        "sponsor_type": "Primary Sponsor"
+      },
+      {
+        "people_id": 3846,
+        "name": "Jeffrey Mursau",
+        "party": "R",
+        "role": "Rep",
+        "sponsor_type": "Primary Sponsor"
+      },
+      {
+        "people_id": 15099,
+        "name": "John Spiros",
+        "party": "R",
+        "role": "Rep",
+        "sponsor_type": "Primary Sponsor"
+      },
+      {
+        "people_id": 15100,
+        "name": "Paul Tittl",
+        "party": "R",
+        "role": "Rep",
+        "sponsor_type": "Primary Sponsor"
+      },
+      {
+        "people_id": 18360,
+        "name": "Ron Tusler",
+        "party": "R",
+        "role": "Rep",
+        "sponsor_type": "Primary Sponsor"
+      },
+      {
+        "people_id": 18364,
+        "name": "Patrick Testin",
+        "party": "R",
+        "role": "Sen",
+        "sponsor_type": "Joint Sponsor"
+      },
+      {
+        "people_id": 16423,
+        "name": "Romaine Quinn",
+        "party": "R",
+        "role": "Sen",
+        "sponsor_type": "Joint Sponsor"
+      },
+      {
+        "people_id": 21986,
+        "name": "Eric Wimberger",
+        "party": "R",
+        "role": "Sen",
+        "sponsor_type": "Joint Sponsor"
+      }
+    ],
+    "calendar": [
+      {
+        "date": "2026-01-21",
+        "description": "Assembly Agriculture Public Hearing",
+        "location": "328 Northwest",
+        "event_type": "Hearing"
+      },
+      {
+        "date": "2026-02-19",
+        "description": "Assembly Agriculture Executive Session",
+        "location": "328 Northwest",
+        "event_type": "Hearing"
+      }
+    ],
+    "session_id": 2197,
+    "session_name": "2025-2026 Regular Session",
+    "session_year_start": 2025,
+    "session_year_end": 2026,
+    "description": "An Act to amend 66.0401 (1m) (intro.) and 76.28 (1) (e) (intro.); to create 66.0401 (1e) (bd), 66.0401 (1e) (bm), 66.0401 (1s), 196.01 (5) (b) 9. and 196.376 of the statutes; Relating to: authorizing community solar programs and granting rule-making authority. (FE)",
     "subjects": [],
-    "committee": "",
-    "committee_id": 0,
-    "history": [],
+    "committee": "Agriculture",
+    "committee_id": 1019,
+    "history": [
+      {
+        "date": "2025-10-09",
+        "action": "Introduced",
+        "chamber": "A",
+        "chamber_id": 99
+      },
+      {
+        "date": "2025-10-09",
+        "action": "Read first time and referred to Committee on Energy and Utilities",
+        "chamber": "A",
+        "chamber_id": 99
+      },
+      {
+        "date": "2025-10-22",
+        "action": "Fiscal estimate received",
+        "chamber": "A",
+        "chamber_id": 99
+      },
+      {
+        "date": "2025-10-28",
+        "action": "Fiscal estimate received",
+        "chamber": "A",
+        "chamber_id": 99
+      },
+      {
+        "date": "2025-11-14",
+        "action": "Representative Knodl added as a coauthor",
+        "chamber": "A",
+        "chamber_id": 99
+      },
+      {
+        "date": "2026-01-12",
+        "action": "Withdrawn from committee on Energy and Utilities and referred to committee on Agriculture pursuant to Assembly Rule 42 (3)(c)",
+        "chamber": "A",
+        "chamber_id": 99
+      },
+      {
+        "date": "2026-01-21",
+        "action": "Public hearing held",
+        "chamber": "A",
+        "chamber_id": 99
+      },
+      {
+        "date": "2026-02-18",
+        "action": "Assembly Substitute Amendment 1 offered by Representatives Krug, Tranel, Moses, Behnke, Kitchens, Murphy, Mursau, Pronschinske and VanderMeer",
+        "chamber": "A",
+        "chamber_id": 99
+      }
+    ],
     "solar_keywords": null
   },
   {
