@@ -97,10 +97,10 @@
     "title": "Authorizing community solar programs and granting rule-making authority. (FE)",
     "url": "https://legiscan.com/WI/bill/AB493/2025",
     "state_link": "https://docs.legis.wisconsin.gov/2025/proposals/reg/asm/bill/ab493",
-    "change_hash": "c3b3bd617a97a80fc60412a740594a5c",
+    "change_hash": "2e1440156c62321e92e3053ea6a266ee",
     "status": 1,
-    "last_history_date": "2026-02-18",
-    "last_history_action": "Assembly Substitute Amendment 1 offered by Representatives Krug, Tranel, Moses, Behnke, Kitchens, Murphy, Mursau, Pronschinske and VanderMeer",
+    "last_history_date": "2026-02-19",
+    "last_history_action": "Executive action taken",
     "progress_events": [
       1,
       9,
@@ -289,6 +289,12 @@
       {
         "date": "2026-02-18",
         "action": "Assembly Substitute Amendment 1 offered by Representatives Krug, Tranel, Moses, Behnke, Kitchens, Murphy, Mursau, Pronschinske and VanderMeer",
+        "chamber": "A",
+        "chamber_id": 99
+      },
+      {
+        "date": "2026-02-19",
+        "action": "Executive action taken",
         "chamber": "A",
         "chamber_id": 99
       }
