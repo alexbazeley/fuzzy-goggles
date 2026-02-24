@@ -94,12 +94,10 @@ FEATURE_NAMES = [
 
 
 def _parse_date(d: str) -> Optional[date]:
-    for fmt in ("%Y-%m-%d", "%Y-%m-%dT%H:%M:%S", "%Y-%m-%dT%H:%M:%S%z"):
-        try:
-            return datetime.strptime(d[:10], "%Y-%m-%d").date()
-        except (ValueError, TypeError):
-            continue
-    return None
+    try:
+        return datetime.strptime(d[:10], "%Y-%m-%d").date()
+    except (ValueError, TypeError):
+        return None
 
 
 def _count_solar_categories(text: str) -> tuple:
@@ -501,7 +499,6 @@ def extract_from_tracked_bill(bill) -> dict:
     events = set(bill.progress_events)
     features["committee_referral"] = 1.0 if 9 in events else 0.0
     features["committee_passage"] = 1.0 if 10 in events else 0.0
-    # passed_one_chamber REMOVED — feature leakage
 
     # --- Actions ---
     first_dt = None

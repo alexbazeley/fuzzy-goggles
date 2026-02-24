@@ -68,7 +68,6 @@ class TrackedBill:
     last_history_action: str
     progress_events: list[int] = field(default_factory=list)
     progress_details: list[dict] = field(default_factory=list)  # [{event, date}]
-    # New fields
     priority: str = "medium"  # "high", "medium", "low"
     sponsors: list[dict] = field(default_factory=list)
     calendar: list[dict] = field(default_factory=list)

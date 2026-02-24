@@ -22,10 +22,10 @@ State-level legislation tracking system for **solar energy developers**. Built w
 | `src/legislator/checker.py` | Data models (`TrackedBill`, `BillChange`), change detection, sponsor/calendar extraction |
 | `src/legislator/scoring.py` | Passage likelihood scoring (trained model or heuristic fallback) |
 | `src/legislator/openstates.py` | Open States API v3 client |
-| `src/legislator/model/features.py` | Feature extraction (73 features) for training and prediction |
+| `src/legislator/model/features.py` | Feature extraction (522 features) for training and prediction |
 | `src/legislator/model/train.py` | Training pipeline (CV, grid search, elastic net, threshold tuning) |
 | `src/legislator/model/export_pg.py` | Export training data from Open States PostgreSQL dump |
-| `src/legislator/model/predict.py` | Prediction using trained logistic regression weights (v1/v2) |
+| `src/legislator/model/predict.py` | Prediction using trained logistic regression weights (v1/v2/v3) |
 | `src/legislator/model/text_features.py` | Pure-Python tokenizer and feature hashing for bill text |
 | `src/legislator/solar.py` | Solar energy keyword analysis for bill text |
 | `src/legislator/related.py` | Cross-state related bill discovery |
@@ -168,7 +168,7 @@ Alternative: you can also place Open States JSON files directly in `src/legislat
 
 ### Automated tests
 
-Run the test suite (176 tests, no API keys needed):
+Run the test suite (184 tests, no API keys needed):
 
 ```bash
 PYTHONPATH=src pytest tests/ -v

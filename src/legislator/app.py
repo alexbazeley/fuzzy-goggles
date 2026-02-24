@@ -1,5 +1,6 @@
 """Flask local server for managing tracked bills."""
 
+from datetime import date as date_cls
 from pathlib import Path
 
 from flask import Flask, jsonify, request, send_from_directory
@@ -405,7 +406,6 @@ def create_app() -> Flask:
 
         # Bills with upcoming hearings
         upcoming_hearings = []
-        from datetime import date as date_cls
         today = date_cls.today().isoformat()
         for b in bills:
             for c in b.calendar:
