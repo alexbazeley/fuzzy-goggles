@@ -59,7 +59,7 @@ Tracked bills are saved to `data/tracked_bills.json`.
 
 ## Running Tests
 
-The project has a test suite covering the core modules (168 tests):
+The project has a test suite covering the core modules (184 tests):
 
 ```bash
 PYTHONPATH=src pytest tests/ -v
@@ -70,9 +70,9 @@ Tests cover:
 - Change detection and data persistence
 - Passage likelihood scoring (heuristic dimensions)
 - Solar keyword analysis and text decoding
-- Feature extraction (73 features, party normalization, labeling)
-- Text tokenization and feature hashing
-- Prediction logic (sigmoid, v1/v2 model compatibility)
+- Feature extraction (522 features, party normalization, labeling)
+- Text tokenization and feature hashing (500 hash buckets, bigrams)
+- Prediction logic (sigmoid, Platt calibration, v1/v2/v3 model compatibility)
 - API client (retry logic, error handling)
 
 No API keys or external services are needed to run tests — everything is mocked.
@@ -109,25 +109,27 @@ Each bill gets a 0-100 score estimating its likelihood of becoming law.
 
 When a trained model is available (`src/legislator/model/weights.json`), scores come from a **logistic regression with elastic net regularization** trained on historical bill data from [Open States](https://openstates.org/).
 
-The v2 model uses:
+The v3 model uses:
 - 5-fold cross-validation stratified by state
-- Hyperparameter grid search (24 combinations)
+- Hyperparameter grid search (72 combinations)
 - Early stopping (patience=50 on validation loss)
 - Elastic net (L1 + L2) regularization — L1 drives irrelevant features to zero
 - Threshold tuning to maximize F1 score
 - Numpy-vectorized gradient descent
+- Platt scaling on a held-out calibration set for well-calibrated probabilities
+- Resolutions excluded by default (focuses on substantive legislation)
+- State passage rates as post-hoc Bayesian prior (not a model feature)
 
-**73 features** (23 structured + 50 text hash):
+**522 features** (22 structured + 500 text hash):
 
 | Category | Features | Examples |
 |----------|----------|---------|
 | Sponsor (6) | Count, party composition, majority alignment | Total sponsors, bipartisan support, majority party fraction |
 | Bill structure (5) | Chamber, type, scope, amendments | Senate origin, resolution type, focused scope |
 | Procedural (2) | Committee progress | Committee referral, committee passage |
-| Action/momentum (5) | Activity patterns and timing | Log action count, early momentum, recent density, session timing |
+| Action/momentum (5) | Activity patterns and timing | Log action count (60-day capped), early momentum, time to committee, committee speed |
 | Text-derived (4) | Title and description analysis | Title length, fiscal note, solar keyword categories |
-| State-level (1) | Historical context | State passage rate |
-| Text hash (50) | Bill text signal | Tokenized title+description mapped via feature hashing |
+| Text hash (500) | Bill text signal | Tokenized title+description with bigrams, mapped via feature hashing |
 
 See [MODEL_ASSESSMENT.md](MODEL_ASSESSMENT.md) for a detailed technical assessment.
 
@@ -147,7 +149,7 @@ createdb openstates
 pg_restore --no-owner --no-acl -d openstates 2026-02-public.pgdump
 ```
 
-**Note:** The dump includes PostGIS extensions for geographic boundary data that we don't use. You'll see errors like `extension "postgis" is not available` and `relation "public.boundaries_boundary" does not exist` — **these are safe to ignore**. The bill, sponsorship, and action tables will load correctly. Expect the restore to take 1-2 hours for a ~9 GB dump.
+**Note:** The dump includes PostGIS extensions for geographic boundary data that we don't use. You'll see errors like `extension "postgis" is not available` and `relation "public.boundaries_boundary" does not exist` — **these are safe to ignore**. The bill, sponsorship, and action tables will load correctly.
 
 ```bash
 # 3. Export training data as JSON
@@ -174,18 +176,24 @@ PYTHONPATH=src python -m legislator.model.train
 
 # Or sample a subset for faster iteration:
 PYTHONPATH=src python -m legislator.model.train --max-bills 50000
+
+# Or include resolutions in training:
+PYTHONPATH=src python -m legislator.model.train --include-resolutions
 ```
 
 #### What training does
 
 The training pipeline will:
-1. Load and extract 73 features per bill (sampling with `--max-bills` if specified)
+1. Load and extract 522 features per bill (sampling with `--max-bills` if specified)
 2. Estimate session dates from actual action date ranges
-3. Compute per-state passage rates
-4. Run 5-fold cross-validation stratified by state across 24 hyperparameter combinations
-5. Train the final model with the best hyperparameters and early stopping
-6. Find the optimal classification threshold (maximizing F1)
-7. Save everything to `src/legislator/model/weights.json`
+3. Compute per-state passage rates (stored for post-hoc Bayesian blending)
+4. Filter out resolutions by default (`--include-resolutions` to opt in)
+5. Run 5-fold cross-validation stratified by state across 72 hyperparameter combinations
+6. Split data into train/calibration/test sets (80/10/10, stratified)
+7. Train the final model with the best hyperparameters and early stopping
+8. Fit Platt scaling on the calibration set for probability calibration
+9. Find the optimal classification threshold (maximizing F1)
+10. Save everything to `src/legislator/model/weights.json`
 
 The output reports CV metrics (mean +/- std F1, precision, recall), best hyperparameters, and feature weights sorted by importance.
 
@@ -253,12 +261,12 @@ src/legislator/
   config.py         - Environment variable configuration
   __main__.py       - CLI entry point
   model/
-    features.py     - Feature extraction (73 features) for training and prediction
-    train.py        - Training pipeline (CV, grid search, elastic net, threshold tuning)
-    predict.py      - Prediction using trained logistic regression weights (v1/v2)
-    text_features.py - Pure-Python tokenizer and feature hashing
+    features.py     - Feature extraction (522 features) for training and prediction
+    train.py        - Training pipeline (CV, grid search, elastic net, Platt scaling)
+    predict.py      - Prediction using trained logistic regression weights (v1/v2/v3)
+    text_features.py - Pure-Python tokenizer and feature hashing (500 buckets, bigrams)
     export_pg.py    - Export training data from Open States PostgreSQL dump
-    weights.json    - Trained model weights (generated by train.py, not in git)
+    weights.json    - Trained model weights (generated by train.py)
   static/
     index.html      - Web UI (dashboard, bill list, search)
 tests/
@@ -267,8 +275,8 @@ tests/
   test_scoring.py   - Heuristic scoring dimensions, session awareness
   test_solar.py     - Keyword analysis, text decoding
   test_features.py  - Feature extraction, party normalization, labeling
-  test_text_features.py - Tokenization, feature hashing
-  test_predict.py   - Prediction logic, model loading
+  test_text_features.py - Tokenization, feature hashing, bigrams
+  test_predict.py   - Prediction logic, Platt calibration, model loading
   test_api.py       - API client retry logic
 data/
   tracked_bills.json - Persisted bill tracking data

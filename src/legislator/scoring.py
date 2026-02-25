@@ -218,7 +218,6 @@ def _score_timing(bill: TrackedBill) -> DimensionResult:
     events = set(bill.progress_events)
     cleared_committee = bill.status >= 2 or 10 in events
     in_committee = 9 in events and not cleared_committee
-    just_introduced = not in_committee and not cleared_committee and bill.status == 1
 
     if pct < 25:
         # Early session — most bills are fine

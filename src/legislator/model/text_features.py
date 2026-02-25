@@ -36,9 +36,9 @@ _STOPWORDS = frozenset({
     "yourself", "yourselves",
     # Legislative boilerplate stopwords
     "act", "section", "chapter", "title", "code", "statute", "enacted",
-    "provide", "amend", "relate", "relating", "provide", "providing",
+    "provide", "amend", "relate", "relating", "providing",
     "whereas", "therefore", "herein", "thereof", "therein", "hereby",
-    "shall", "state", "states", "bill", "resolution", "senate", "house",
+    "state", "states", "bill", "resolution", "senate", "house",
     "assembly", "committee", "session", "legislature", "legislative",
 })
 

@@ -36,7 +36,6 @@ def find_related_bills(api: LegiScanAPI, bill: TrackedBill, max_results: int = 1
     except Exception:
         return []
 
-    summary = results.get("summary", {})
     related = []
     for key in sorted(results.keys()):
         if key == "summary":
