@@ -36,28 +36,74 @@
     "title": "Expands the solar energy system equipment tax credit to cover solar energy system equipment installed in a community solar array; defines \"community solar array\" to mean a location other than a person's principal residence where solar energy system equipment is owned and installed for use in such person's principal residence.",
     "url": "https://legiscan.com/NY/bill/S05846/2025",
     "state_link": "https://www.nysenate.gov/legislation/bills/2025/S5846",
-    "change_hash": "6935b177548f2afcf612c8e6eea2283c",
+    "change_hash": "5e4ea6cca597c040464e01a5b8d43362",
     "status": 1,
-    "last_history_date": "2026-01-07",
-    "last_history_action": "REFERRED TO BUDGET AND REVENUE",
+    "last_history_date": "2026-03-02",
+    "last_history_action": "AMEND AND RECOMMIT TO BUDGET AND REVENUE",
     "progress_events": [
       1,
       9,
       9
     ],
-    "progress_details": [],
+    "progress_details": [
+      {
+        "event": 1,
+        "date": "2025-03-03"
+      },
+      {
+        "event": 9,
+        "date": "2025-03-03"
+      },
+      {
+        "event": 9,
+        "date": "2026-01-07"
+      }
+    ],
     "priority": "medium",
-    "sponsors": [],
+    "sponsors": [
+      {
+        "people_id": 14216,
+        "name": "James Skoufis",
+        "party": "D",
+        "role": "Sen",
+        "sponsor_type": "Primary Sponsor"
+      }
+    ],
     "calendar": [],
-    "session_id": 0,
-    "session_name": "",
-    "session_year_start": 0,
-    "session_year_end": 0,
-    "description": "",
+    "session_id": 2188,
+    "session_name": "2025-2026 General Assembly",
+    "session_year_start": 2025,
+    "session_year_end": 2026,
+    "description": "Expands the solar energy system equipment tax credit to cover solar energy system equipment installed in a community solar array; defines \"community solar array\" to mean a location other than a person's principal residence where solar energy system equipment is owned and installed for use in such person's principal residence.",
     "subjects": [],
-    "committee": "",
-    "committee_id": 0,
-    "history": [],
+    "committee": "Budget and Revenue",
+    "committee_id": 3907,
+    "history": [
+      {
+        "date": "2025-03-03",
+        "action": "REFERRED TO BUDGET AND REVENUE",
+        "chamber": "S",
+        "chamber_id": 74
+      },
+      {
+        "date": "2026-01-07",
+        "action": "REFERRED TO BUDGET AND REVENUE",
+        "chamber": "S",
+        "chamber_id": 74
+      },
+      {
+        "date": "2026-03-02",
+        "action": "AMEND AND RECOMMIT TO BUDGET AND REVENUE",
+        "chamber": "S",
+        "chamber_id": 74
+      },
+      {
+        "date": "2026-03-02",
+        "action": "PRINT NUMBER 5846A",
+        "chamber": "S",
+        "chamber_id": 74
+      }
+    ],
     "solar_keywords": null
   },
   {
