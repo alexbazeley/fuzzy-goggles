@@ -143,13 +143,15 @@
     "title": "Authorizing community solar programs and granting rule-making authority. (FE)",
     "url": "https://legiscan.com/WI/bill/AB493/2025",
     "state_link": "https://docs.legis.wisconsin.gov/2025/proposals/reg/asm/bill/ab493",
-    "change_hash": "2e1440156c62321e92e3053ea6a266ee",
+    "change_hash": "b3dce15fac5518f38e64d6b10500ad56",
     "status": 1,
     "last_history_date": "2026-02-19",
     "last_history_action": "Executive action taken",
     "progress_events": [
       1,
       9,
+      9,
+      10,
       9
     ],
     "progress_details": [
@@ -164,6 +166,14 @@
       {
         "event": 9,
         "date": "2026-01-12"
+      },
+      {
+        "event": 10,
+        "date": "2026-02-19"
+      },
+      {
+        "event": 9,
+        "date": "2026-02-19"
       }
     ],
     "priority": "medium",
@@ -287,8 +297,8 @@
     "session_year_end": 2026,
     "description": "An Act to amend 66.0401 (1m) (intro.) and 76.28 (1) (e) (intro.); to create 66.0401 (1e) (bd), 66.0401 (1e) (bm), 66.0401 (1s), 196.01 (5) (b) 9. and 196.376 of the statutes; Relating to: authorizing community solar programs and granting rule-making authority. (FE)",
     "subjects": [],
-    "committee": "Agriculture",
-    "committee_id": 1019,
+    "committee": "Rules",
+    "committee_id": 1049,
     "history": [
       {
         "date": "2025-10-09",
@@ -341,6 +351,24 @@
       {
         "date": "2026-02-19",
         "action": "Executive action taken",
+        "chamber": "A",
+        "chamber_id": 99
+      },
+      {
+        "date": "2026-02-19",
+        "action": "Report Assembly Substitute Amendment 1 adoption recommended by Committee on Agriculture, Ayes 9, Noes 6",
+        "chamber": "A",
+        "chamber_id": 99
+      },
+      {
+        "date": "2026-02-19",
+        "action": "Report passage as amended recommended by Committee on Agriculture, Ayes 9, Noes 6",
+        "chamber": "A",
+        "chamber_id": 99
+      },
+      {
+        "date": "2026-02-19",
+        "action": "Referred to committee on Rules",
         "chamber": "A",
         "chamber_id": 99
       }
