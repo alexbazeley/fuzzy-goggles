@@ -14,19 +14,113 @@
       1,
       9
     ],
-    "progress_details": [],
+    "progress_details": [
+      {
+        "event": 1,
+        "date": "2025-12-10"
+      },
+      {
+        "event": 9,
+        "date": "2025-12-10"
+      }
+    ],
     "priority": "medium",
-    "sponsors": [],
+    "sponsors": [
+      {
+        "people_id": 466,
+        "name": "Lisa Boscola",
+        "party": "D",
+        "role": "Sen",
+        "sponsor_type": "Primary Sponsor"
+      },
+      {
+        "people_id": 14156,
+        "name": "Patty Kim",
+        "party": "D",
+        "role": "Sen",
+        "sponsor_type": "Co-Sponsor"
+      },
+      {
+        "people_id": 16957,
+        "name": "Arthur Haywood",
+        "party": "D",
+        "role": "Sen",
+        "sponsor_type": "Co-Sponsor"
+      },
+      {
+        "people_id": 902,
+        "name": "Elder Vogel",
+        "party": "R",
+        "role": "Sen",
+        "sponsor_type": "Co-Sponsor"
+      },
+      {
+        "people_id": 339,
+        "name": "Scott Hutchinson",
+        "party": "R",
+        "role": "Sen",
+        "sponsor_type": "Co-Sponsor"
+      },
+      {
+        "people_id": 22080,
+        "name": "Devlin Robinson",
+        "party": "R",
+        "role": "Sen",
+        "sponsor_type": "Co-Sponsor"
+      },
+      {
+        "people_id": 14146,
+        "name": "Martin Flynn",
+        "party": "D",
+        "role": "Sen",
+        "sponsor_type": "Co-Sponsor"
+      },
+      {
+        "people_id": 23556,
+        "name": "Nicholas Miller",
+        "party": "D",
+        "role": "Sen",
+        "sponsor_type": "Co-Sponsor"
+      },
+      {
+        "people_id": 13010,
+        "name": "Judy Schwank",
+        "party": "D",
+        "role": "Sen",
+        "sponsor_type": "Co-Sponsor"
+      },
+      {
+        "people_id": 22041,
+        "name": "Nick Pisciottano",
+        "party": "D",
+        "role": "Sen",
+        "sponsor_type": "Co-Sponsor"
+      },
+      {
+        "people_id": 18220,
+        "name": "Carolyn Comitta",
+        "party": "D",
+        "role": "Sen",
+        "sponsor_type": "Co-Sponsor"
+      }
+    ],
     "calendar": [],
-    "session_id": 0,
-    "session_name": "",
-    "session_year_start": 0,
-    "session_year_end": 0,
-    "description": "",
+    "session_id": 2192,
+    "session_name": "2025-2026 Regular Session",
+    "session_year_start": 2025,
+    "session_year_end": 2026,
+    "description": "An Act amending the act of November 30, 2004 (P.L.1672, No.213), known as the Alternative Energy Portfolio Standards Act, further providing for definitions, for interconnection standards for customer-generator facilities and for interagency responsibilities.",
     "subjects": [],
-    "committee": "",
-    "committee_id": 0,
-    "history": [],
+    "committee": "Consumer Protection & Professional Licensure",
+    "committee_id": 71,
+    "history": [
+      {
+        "date": "2025-12-10",
+        "action": "Referred to Consumer Protection & Professional Licensure",
+        "chamber": "S",
+        "chamber_id": 4
+      }
+    ],
     "solar_keywords": null
   },
   {
@@ -121,19 +215,164 @@
       1,
       9
     ],
-    "progress_details": [],
+    "progress_details": [
+      {
+        "event": 1,
+        "date": "2025-10-24"
+      },
+      {
+        "event": 9,
+        "date": "2025-10-24"
+      }
+    ],
     "priority": "medium",
-    "sponsors": [],
-    "calendar": [],
-    "session_id": 0,
-    "session_name": "",
-    "session_year_start": 0,
-    "session_year_end": 0,
-    "description": "",
+    "sponsors": [
+      {
+        "people_id": 18364,
+        "name": "Patrick Testin",
+        "party": "R",
+        "role": "Sen",
+        "sponsor_type": "Primary Sponsor"
+      },
+      {
+        "people_id": 16423,
+        "name": "Romaine Quinn",
+        "party": "R",
+        "role": "Sen",
+        "sponsor_type": "Primary Sponsor"
+      },
+      {
+        "people_id": 21986,
+        "name": "Eric Wimberger",
+        "party": "R",
+        "role": "Sen",
+        "sponsor_type": "Primary Sponsor"
+      },
+      {
+        "people_id": 12267,
+        "name": "Scott Krug",
+        "party": "R",
+        "role": "Rep",
+        "sponsor_type": "Joint Sponsor"
+      },
+      {
+        "people_id": 20178,
+        "name": "Barbara Dittrich",
+        "party": "R",
+        "role": "Rep",
+        "sponsor_type": "Joint Sponsor"
+      },
+      {
+        "people_id": 19637,
+        "name": "Rick Gundrum",
+        "party": "R",
+        "role": "Rep",
+        "sponsor_type": "Joint Sponsor"
+      },
+      {
+        "people_id": 23591,
+        "name": "Nate Gustafson",
+        "party": "R",
+        "role": "Rep",
+        "sponsor_type": "Joint Sponsor"
+      },
+      {
+        "people_id": 23595,
+        "name": "Dave Maxey",
+        "party": "R",
+        "role": "Rep",
+        "sponsor_type": "Joint Sponsor"
+      },
+      {
+        "people_id": 24954,
+        "name": "Paul Melotik",
+        "party": "R",
+        "role": "Rep",
+        "sponsor_type": "Joint Sponsor"
+      },
+      {
+        "people_id": 15096,
+        "name": "David Murphy",
+        "party": "R",
+        "role": "Rep",
+        "sponsor_type": "Joint Sponsor"
+      },
+      {
+        "people_id": 3846,
+        "name": "Jeffrey Mursau",
+        "party": "R",
+        "role": "Rep",
+        "sponsor_type": "Joint Sponsor"
+      },
+      {
+        "people_id": 15099,
+        "name": "John Spiros",
+        "party": "R",
+        "role": "Rep",
+        "sponsor_type": "Joint Sponsor"
+      },
+      {
+        "people_id": 18360,
+        "name": "Ron Tusler",
+        "party": "R",
+        "role": "Rep",
+        "sponsor_type": "Joint Sponsor"
+      }
+    ],
+    "calendar": [
+      {
+        "date": "2025-12-09",
+        "description": "Senate Transportation and Local Government Public Hearing",
+        "location": "411 South",
+        "event_type": "Hearing"
+      }
+    ],
+    "session_id": 2197,
+    "session_name": "2025-2026 Regular Session",
+    "session_year_start": 2025,
+    "session_year_end": 2026,
+    "description": "An Act to amend 66.0401 (1m) (intro.) and 76.28 (1) (e) (intro.); to create 66.0401 (1e) (bd), 66.0401 (1e) (bm), 66.0401 (1s), 196.01 (5) (b) 9. and 196.376 of the statutes; Relating to: authorizing community solar programs and granting rule-making authority. (FE)",
     "subjects": [],
-    "committee": "",
-    "committee_id": 0,
-    "history": [],
+    "committee": "Transportation and Local Government",
+    "committee_id": 4416,
+    "history": [
+      {
+        "date": "2025-10-24",
+        "action": "Introduced",
+        "chamber": "S",
+        "chamber_id": 100
+      },
+      {
+        "date": "2025-10-24",
+        "action": "Read first time and referred to Committee on Transportation and Local Government",
+        "chamber": "S",
+        "chamber_id": 100
+      },
+      {
+        "date": "2025-11-12",
+        "action": "Fiscal estimate received",
+        "chamber": "S",
+        "chamber_id": 100
+      },
+      {
+        "date": "2025-11-14",
+        "action": "Representative Knodl added as a cosponsor",
+        "chamber": "S",
+        "chamber_id": 100
+      },
+      {
+        "date": "2025-11-17",
+        "action": "Fiscal estimate received",
+        "chamber": "S",
+        "chamber_id": 100
+      },
+      {
+        "date": "2025-12-09",
+        "action": "Public hearing held",
+        "chamber": "S",
+        "chamber_id": 100
+      }
+    ],
     "solar_keywords": null
   },
   {
@@ -391,19 +630,342 @@
       10,
       2
     ],
-    "progress_details": [],
+    "progress_details": [
+      {
+        "event": 1,
+        "date": "2025-05-27"
+      },
+      {
+        "event": 10,
+        "date": "2025-11-18"
+      },
+      {
+        "event": 2,
+        "date": "2025-11-19"
+      }
+    ],
     "priority": "medium",
-    "sponsors": [],
-    "calendar": [],
-    "session_id": 0,
-    "session_name": "",
-    "session_year_start": 0,
-    "session_year_end": 0,
-    "description": "",
-    "subjects": [],
-    "committee": "",
-    "committee_id": 0,
-    "history": [],
+    "sponsors": [
+      {
+        "people_id": 22780,
+        "name": "Sharon Ray",
+        "party": "R",
+        "role": "Rep",
+        "sponsor_type": "Primary Sponsor"
+      },
+      {
+        "people_id": 19550,
+        "name": "James Hoops",
+        "party": "R",
+        "role": "Rep",
+        "sponsor_type": "Primary Sponsor"
+      },
+      {
+        "people_id": 21389,
+        "name": "Cindy Abrams",
+        "party": "R",
+        "role": "Rep",
+        "sponsor_type": "Co-Sponsor"
+      },
+      {
+        "people_id": 24455,
+        "name": "Rachel Baker",
+        "party": "D",
+        "role": "Rep",
+        "sponsor_type": "Co-Sponsor"
+      },
+      {
+        "people_id": 24457,
+        "name": "Sean Brennan",
+        "party": "D",
+        "role": "Rep",
+        "sponsor_type": "Co-Sponsor"
+      },
+      {
+        "people_id": 20322,
+        "name": "Juanita Brent",
+        "party": "D",
+        "role": "Rep",
+        "sponsor_type": "Co-Sponsor"
+      },
+      {
+        "people_id": 26107,
+        "name": "Karen Brownlee",
+        "party": "D",
+        "role": "Rep",
+        "sponsor_type": "Co-Sponsor"
+      },
+      {
+        "people_id": 26501,
+        "name": "Ashley Bryant Bailey",
+        "party": "D",
+        "role": "Rep",
+        "sponsor_type": "Co-Sponsor"
+      },
+      {
+        "people_id": 26111,
+        "name": "Kellie Deeter",
+        "party": "R",
+        "role": "Rep",
+        "sponsor_type": "Co-Sponsor"
+      },
+      {
+        "people_id": 10995,
+        "name": "Michael Dovilla",
+        "party": "R",
+        "role": "Rep",
+        "sponsor_type": "Co-Sponsor"
+      },
+      {
+        "people_id": 25208,
+        "name": "Tex Fischer",
+        "party": "R",
+        "role": "Rep",
+        "sponsor_type": "Co-Sponsor"
+      },
+      {
+        "people_id": 26140,
+        "name": "Chris Glassburn",
+        "party": "D",
+        "role": "Rep",
+        "sponsor_type": "Co-Sponsor"
+      },
+      {
+        "people_id": 26112,
+        "name": "Derrick Hall",
+        "party": "D",
+        "role": "Rep",
+        "sponsor_type": "Co-Sponsor"
+      },
+      {
+        "people_id": 24466,
+        "name": "Angela King",
+        "party": "R",
+        "role": "Rep",
+        "sponsor_type": "Co-Sponsor"
+      },
+      {
+        "people_id": 26114,
+        "name": "Matthew Kishman",
+        "party": "R",
+        "role": "Rep",
+        "sponsor_type": "Co-Sponsor"
+      },
+      {
+        "people_id": 22777,
+        "name": "Brian Lampton",
+        "party": "R",
+        "role": "Rep",
+        "sponsor_type": "Co-Sponsor"
+      },
+      {
+        "people_id": 20320,
+        "name": "Joseph Miller",
+        "party": "D",
+        "role": "Rep",
+        "sponsor_type": "Co-Sponsor"
+      },
+      {
+        "people_id": 26119,
+        "name": "Johnathan Newman",
+        "party": "R",
+        "role": "Rep",
+        "sponsor_type": "Co-Sponsor"
+      },
+      {
+        "people_id": 26120,
+        "name": "Mike Odioso",
+        "party": "R",
+        "role": "Rep",
+        "sponsor_type": "Co-Sponsor"
+      },
+      {
+        "people_id": 25029,
+        "name": "Beryl Brown Piccolantonio",
+        "party": "D",
+        "role": "Rep",
+        "sponsor_type": "Co-Sponsor"
+      },
+      {
+        "people_id": 26121,
+        "name": "Tristan Rader",
+        "party": "D",
+        "role": "Rep",
+        "sponsor_type": "Co-Sponsor"
+      },
+      {
+        "people_id": 20334,
+        "name": "Tracy Richardson",
+        "party": "R",
+        "role": "Rep",
+        "sponsor_type": "Co-Sponsor"
+      },
+      {
+        "people_id": 20309,
+        "name": "Bill Roemer",
+        "party": "R",
+        "role": "Rep",
+        "sponsor_type": "Co-Sponsor"
+      },
+      {
+        "people_id": 20307,
+        "name": "Allison Russo",
+        "party": "D",
+        "role": "Rep",
+        "sponsor_type": "Co-Sponsor"
+      },
+      {
+        "people_id": 26123,
+        "name": "Jodi Salvo",
+        "party": "R",
+        "role": "Rep",
+        "sponsor_type": "Co-Sponsor"
+      },
+      {
+        "people_id": 22781,
+        "name": "Jean Schmidt",
+        "party": "R",
+        "role": "Rep",
+        "sponsor_type": "Co-Sponsor"
+      },
+      {
+        "people_id": 26124,
+        "name": "Mark Sigrist",
+        "party": "D",
+        "role": "Rep",
+        "sponsor_type": "Co-Sponsor"
+      },
+      {
+        "people_id": 19689,
+        "name": "Bride Sweeney",
+        "party": "D",
+        "role": "Rep",
+        "sponsor_type": "Co-Sponsor"
+      },
+      {
+        "people_id": 26127,
+        "name": "David Thomas",
+        "party": "R",
+        "role": "Rep",
+        "sponsor_type": "Co-Sponsor"
+      },
+      {
+        "people_id": 22784,
+        "name": "Daniel Troy",
+        "party": "D",
+        "role": "Rep",
+        "sponsor_type": "Co-Sponsor"
+      },
+      {
+        "people_id": 22785,
+        "name": "Andrea White",
+        "party": "R",
+        "role": "Rep",
+        "sponsor_type": "Co-Sponsor"
+      },
+      {
+        "people_id": 24477,
+        "name": "Josh Williams",
+        "party": "R",
+        "role": "Rep",
+        "sponsor_type": "Co-Sponsor"
+      },
+      {
+        "people_id": 22786,
+        "name": "Tom Young",
+        "party": "R",
+        "role": "Rep",
+        "sponsor_type": "Co-Sponsor"
+      }
+    ],
+    "calendar": [
+      {
+        "date": "2025-09-24",
+        "description": "House Energy Hoops, 1st Hearing, Sponsor Testimony",
+        "location": "Room 313",
+        "event_type": "Hearing"
+      },
+      {
+        "date": "2025-10-01",
+        "description": "House Energy Hoops, 2nd Hearing, Proponent Testimony",
+        "location": "Room 313",
+        "event_type": "Hearing"
+      },
+      {
+        "date": "2025-10-15",
+        "description": "House Energy Hoops, 3rd Hearing, Opp/IP Testimony",
+        "location": "Room 313",
+        "event_type": "Hearing"
+      },
+      {
+        "date": "2025-11-05",
+        "description": "House Ways and Means Hoops, 4th Hearing PS",
+        "location": "Room 116",
+        "event_type": "Hearing"
+      },
+      {
+        "date": "2025-11-12",
+        "description": "House Rules and Reference Hoops, 5th Hearing, Prop/Opp/IP Testimony PA",
+        "location": "House Chamber",
+        "event_type": "Hearing"
+      },
+      {
+        "date": "2025-11-18",
+        "description": "House Energy Hoops, 6th Hearing PV",
+        "location": "Room 313",
+        "event_type": "Hearing"
+      }
+    ],
+    "session_id": 2190,
+    "session_name": "136th General Assembly",
+    "session_year_start": 2025,
+    "session_year_end": 2026,
+    "description": "To amend section 4928.02 and to enact sections 1.66, 4934.01, 4934.011, 4934.04, 4934.05, 4934.06, 4934.07, 4934.071, 4934.072, 4934.08, 4934.10, 4934.11, 4934.12, 4934.13, 4934.14, 4934.17, 4934.19, 4934.20, 4934.21, 4934.22, 4934.25, 4934.26, 4934.27, 4934.28, 4934.35, 4934.36, 4934.37, and 4934.38 of the Revised Code to establish the community energy program and pilot program and to define electricity measurement in alternating current.",
+    "subjects": [
+      "Utilities : Electric Utilities",
+      "House Energy Committee",
+      "Senate Energy Committee"
+    ],
+    "committee": "Energy",
+    "committee_id": 5084,
+    "history": [
+      {
+        "date": "2025-05-27",
+        "action": "Introduced",
+        "chamber": "H",
+        "chamber_id": 5
+      },
+      {
+        "date": "2025-05-28",
+        "action": "Referred to committee: Energy",
+        "chamber": "H",
+        "chamber_id": 5
+      },
+      {
+        "date": "2025-11-18",
+        "action": "Reported - Substitute: Energy",
+        "chamber": "H",
+        "chamber_id": 5
+      },
+      {
+        "date": "2025-11-19",
+        "action": "Passed",
+        "chamber": "H",
+        "chamber_id": 5
+      },
+      {
+        "date": "2025-11-25",
+        "action": "Introduced",
+        "chamber": "S",
+        "chamber_id": 6
+      },
+      {
+        "date": "2026-02-11",
+        "action": "Referred to committee: Energy",
+        "chamber": "S",
+        "chamber_id": 6
+      }
+    ],
     "solar_keywords": null
   },
   {
@@ -421,19 +983,110 @@
       1,
       9
     ],
-    "progress_details": [],
+    "progress_details": [
+      {
+        "event": 1,
+        "date": "2025-09-04"
+      },
+      {
+        "event": 9,
+        "date": "2025-09-04"
+      }
+    ],
     "priority": "medium",
-    "sponsors": [],
+    "sponsors": [
+      {
+        "people_id": 11179,
+        "name": "Jeff Irwin",
+        "party": "D",
+        "role": "Sen",
+        "sponsor_type": "Primary Sponsor"
+      },
+      {
+        "people_id": 11183,
+        "name": "Ed McBroom",
+        "party": "R",
+        "role": "Sen",
+        "sponsor_type": "Co-Sponsor"
+      },
+      {
+        "people_id": 24346,
+        "name": "Sue Shink",
+        "party": "D",
+        "role": "Sen",
+        "sponsor_type": "Co-Sponsor"
+      },
+      {
+        "people_id": 20798,
+        "name": "Dayna Polehanki",
+        "party": "D",
+        "role": "Sen",
+        "sponsor_type": "Co-Sponsor"
+      },
+      {
+        "people_id": 17064,
+        "name": "Stephanie Chang",
+        "party": "D",
+        "role": "Sen",
+        "sponsor_type": "Co-Sponsor"
+      },
+      {
+        "people_id": 21042,
+        "name": "Rosemary Bayer",
+        "party": "D",
+        "role": "Sen",
+        "sponsor_type": "Co-Sponsor"
+      },
+      {
+        "people_id": 22466,
+        "name": "Mary Cavanagh",
+        "party": "D",
+        "role": "Sen",
+        "sponsor_type": "Co-Sponsor"
+      },
+      {
+        "people_id": 2854,
+        "name": "Kevin Daley",
+        "party": "R",
+        "role": "Sen",
+        "sponsor_type": "Co-Sponsor"
+      },
+      {
+        "people_id": 21022,
+        "name": "Mallory McMorrow",
+        "party": "D",
+        "role": "Sen",
+        "sponsor_type": "Co-Sponsor"
+      }
+    ],
     "calendar": [],
-    "session_id": 0,
-    "session_name": "",
-    "session_year_start": 0,
-    "session_year_end": 0,
-    "description": "",
-    "subjects": [],
-    "committee": "",
-    "committee_id": 0,
-    "history": [],
+    "session_id": 2183,
+    "session_name": "103rd Legislature",
+    "session_year_start": 2025,
+    "session_year_end": 2026,
+    "description": "Energy: alternative sources; community solar facilities; provide for establishment of. Amends sec. 5 of 2008 PA 295 (MCL 460.1005) & adds pt. 9. TIE BAR WITH: SB 519'25",
+    "subjects": [
+      "Energy: alternative sources",
+      "Energy: electricity",
+      "Public utilities: electric utilities",
+      "Public utilities: consumer services"
+    ],
+    "committee": "Energy And Environment",
+    "committee_id": 4732,
+    "history": [
+      {
+        "date": "2025-09-04",
+        "action": "Introduced By Senator Jeff Irwin",
+        "chamber": "S",
+        "chamber_id": 54
+      },
+      {
+        "date": "2025-09-04",
+        "action": "Referred To Committee On Energy And Environment",
+        "chamber": "S",
+        "chamber_id": 54
+      }
+    ],
     "solar_keywords": null
   },
   {
@@ -451,79 +1104,110 @@
       1,
       9
     ],
-    "progress_details": [],
-    "priority": "medium",
-    "sponsors": [],
-    "calendar": [],
-    "session_id": 0,
-    "session_name": "",
-    "session_year_start": 0,
-    "session_year_end": 0,
-    "description": "",
-    "subjects": [],
-    "committee": "",
-    "committee_id": 0,
-    "history": [],
-    "solar_keywords": null
-  },
-  {
-    "bill_id": 1965388,
-    "state": "IA",
-    "bill_number": "SF267",
-    "title": "A bill for an act relating to solar energy by establishing a shared solar net metering cooperative program.",
-    "url": "https://legiscan.com/IA/bill/SF267/2025",
-    "state_link": "https://www.legis.iowa.gov/legislation/BillBook?ga=91&ba=SF267",
-    "change_hash": "81c94c02c03a63a9dd30e653d65c2d33",
-    "status": 1,
-    "last_history_date": "2025-02-20",
-    "last_history_action": "Subcommittee recommends amendment and passage.",
-    "progress_events": [
-      1,
-      9
+    "progress_details": [
+      {
+        "event": 1,
+        "date": "2025-09-04"
+      },
+      {
+        "event": 9,
+        "date": "2025-09-04"
+      }
     ],
-    "progress_details": [],
     "priority": "medium",
-    "sponsors": [],
-    "calendar": [],
-    "session_id": 0,
-    "session_name": "",
-    "session_year_start": 0,
-    "session_year_end": 0,
-    "description": "",
-    "subjects": [],
-    "committee": "",
-    "committee_id": 0,
-    "history": [],
-    "solar_keywords": null
-  },
-  {
-    "bill_id": 1969228,
-    "state": "IA",
-    "bill_number": "HF404",
-    "title": "A bill for an act relating to solar energy by establishing a community solar facility program.(Formerly HSB 81.)",
-    "url": "https://legiscan.com/IA/bill/HF404/2025",
-    "state_link": "https://www.legis.iowa.gov/legislation/BillBook?ga=91&ba=HF404",
-    "change_hash": "ec0a2f07c6d849f031628b27536ba242",
-    "status": 1,
-    "last_history_date": "2025-04-03",
-    "last_history_action": "Referred to Commerce. H.J. 895.",
-    "progress_events": [
-      1,
-      9
+    "sponsors": [
+      {
+        "people_id": 11183,
+        "name": "Ed McBroom",
+        "party": "R",
+        "role": "Sen",
+        "sponsor_type": "Primary Sponsor"
+      },
+      {
+        "people_id": 11179,
+        "name": "Jeff Irwin",
+        "party": "D",
+        "role": "Sen",
+        "sponsor_type": "Co-Sponsor"
+      },
+      {
+        "people_id": 24346,
+        "name": "Sue Shink",
+        "party": "D",
+        "role": "Sen",
+        "sponsor_type": "Co-Sponsor"
+      },
+      {
+        "people_id": 20798,
+        "name": "Dayna Polehanki",
+        "party": "D",
+        "role": "Sen",
+        "sponsor_type": "Co-Sponsor"
+      },
+      {
+        "people_id": 22466,
+        "name": "Mary Cavanagh",
+        "party": "D",
+        "role": "Sen",
+        "sponsor_type": "Co-Sponsor"
+      },
+      {
+        "people_id": 17064,
+        "name": "Stephanie Chang",
+        "party": "D",
+        "role": "Sen",
+        "sponsor_type": "Co-Sponsor"
+      },
+      {
+        "people_id": 21042,
+        "name": "Rosemary Bayer",
+        "party": "D",
+        "role": "Sen",
+        "sponsor_type": "Co-Sponsor"
+      },
+      {
+        "people_id": 2854,
+        "name": "Kevin Daley",
+        "party": "R",
+        "role": "Sen",
+        "sponsor_type": "Co-Sponsor"
+      },
+      {
+        "people_id": 21022,
+        "name": "Mallory McMorrow",
+        "party": "D",
+        "role": "Sen",
+        "sponsor_type": "Co-Sponsor"
+      }
     ],
-    "progress_details": [],
-    "priority": "medium",
-    "sponsors": [],
     "calendar": [],
-    "session_id": 0,
-    "session_name": "",
-    "session_year_start": 0,
-    "session_year_end": 0,
-    "description": "",
-    "subjects": [],
-    "committee": "",
-    "committee_id": 0,
-    "history": [],
+    "session_id": 2183,
+    "session_name": "103rd Legislature",
+    "session_year_start": 2025,
+    "session_year_end": 2026,
+    "description": "Public utilities: consumer services; community solar facilities; require MPSC to promulgate rules concerning. Amends 2008 PA 295 (MCL 460.1001 - 460.1232) by adding secs. 245 & 247. TIE BAR WITH: SB 518'25",
+    "subjects": [
+      "Public utilities: consumer services",
+      "Public utilities: electric utilities",
+      "Energy: alternative sources",
+      "Energy: electricity"
+    ],
+    "committee": "Energy And Environment",
+    "committee_id": 4732,
+    "history": [
+      {
+        "date": "2025-09-04",
+        "action": "Introduced By Senator Edward Mcbroom",
+        "chamber": "S",
+        "chamber_id": 54
+      },
+      {
+        "date": "2025-09-04",
+        "action": "Referred To Committee On Energy And Environment",
+        "chamber": "S",
+        "chamber_id": 54
+      }
+    ],
     "solar_keywords": null
   },
   {
@@ -543,19 +1227,746 @@
       9,
       9
     ],
-    "progress_details": [],
+    "progress_details": [
+      {
+        "event": 1,
+        "date": "2025-06-10"
+      },
+      {
+        "event": 9,
+        "date": "2025-06-10"
+      },
+      {
+        "event": 9,
+        "date": "2025-07-24"
+      },
+      {
+        "event": 9,
+        "date": "2025-10-21"
+      }
+    ],
     "priority": "medium",
-    "sponsors": [],
+    "sponsors": [
+      {
+        "people_id": 20419,
+        "name": "Gregory Markkanen",
+        "party": "R",
+        "role": "Rep",
+        "sponsor_type": "Primary Sponsor"
+      },
+      {
+        "people_id": 25818,
+        "name": "Jennifer Wortz",
+        "party": "R",
+        "role": "Rep",
+        "sponsor_type": "Co-Sponsor"
+      },
+      {
+        "people_id": 25807,
+        "name": "Karl Bohnak",
+        "party": "R",
+        "role": "Rep",
+        "sponsor_type": "Co-Sponsor"
+      },
+      {
+        "people_id": 22460,
+        "name": "Timothy Beson",
+        "party": "R",
+        "role": "Rep",
+        "sponsor_type": "Co-Sponsor"
+      },
+      {
+        "people_id": 22462,
+        "name": "Ken Borton",
+        "party": "R",
+        "role": "Rep",
+        "sponsor_type": "Co-Sponsor"
+      },
+      {
+        "people_id": 24351,
+        "name": "Cam Cavitt",
+        "party": "R",
+        "role": "Rep",
+        "sponsor_type": "Co-Sponsor"
+      },
+      {
+        "people_id": 24364,
+        "name": "Angela Rigas",
+        "party": "R",
+        "role": "Rep",
+        "sponsor_type": "Co-Sponsor"
+      },
+      {
+        "people_id": 22747,
+        "name": "Pat Outman",
+        "party": "R",
+        "role": "Rep",
+        "sponsor_type": "Co-Sponsor"
+      },
+      {
+        "people_id": 22469,
+        "name": "David Martin",
+        "party": "R",
+        "role": "Rep",
+        "sponsor_type": "Co-Sponsor"
+      },
+      {
+        "people_id": 24359,
+        "name": "Tom Kunse",
+        "party": "R",
+        "role": "Rep",
+        "sponsor_type": "Co-Sponsor"
+      },
+      {
+        "people_id": 24363,
+        "name": "Jamie Thompson",
+        "party": "R",
+        "role": "Rep",
+        "sponsor_type": "Co-Sponsor"
+      },
+      {
+        "people_id": 20665,
+        "name": "Brad Paquette",
+        "party": "R",
+        "role": "Rep",
+        "sponsor_type": "Co-Sponsor"
+      },
+      {
+        "people_id": 22475,
+        "name": "John Roth",
+        "party": "R",
+        "role": "Rep",
+        "sponsor_type": "Co-Sponsor"
+      },
+      {
+        "people_id": 24350,
+        "name": "Matthew Bierlein",
+        "party": "R",
+        "role": "Rep",
+        "sponsor_type": "Co-Sponsor"
+      },
+      {
+        "people_id": 14523,
+        "name": "Tim Kelly",
+        "party": "R",
+        "role": "Rep",
+        "sponsor_type": "Co-Sponsor"
+      },
+      {
+        "people_id": 24333,
+        "name": "Jerry Neyer",
+        "party": "R",
+        "role": "Rep",
+        "sponsor_type": "Co-Sponsor"
+      },
+      {
+        "people_id": 20676,
+        "name": "Douglas Wozniak",
+        "party": "R",
+        "role": "Rep",
+        "sponsor_type": "Co-Sponsor"
+      },
+      {
+        "people_id": 24357,
+        "name": "Gina Johnsen",
+        "party": "R",
+        "role": "Rep",
+        "sponsor_type": "Co-Sponsor"
+      },
+      {
+        "people_id": 24349,
+        "name": "Brian BeGole",
+        "party": "R",
+        "role": "Rep",
+        "sponsor_type": "Co-Sponsor"
+      },
+      {
+        "people_id": 25810,
+        "name": "Steve Frisbie",
+        "party": "R",
+        "role": "Rep",
+        "sponsor_type": "Co-Sponsor"
+      },
+      {
+        "people_id": 25808,
+        "name": "Parker Fairbairn",
+        "party": "R",
+        "role": "Rep",
+        "sponsor_type": "Co-Sponsor"
+      },
+      {
+        "people_id": 18767,
+        "name": "Curtis VanderWall",
+        "party": "R",
+        "role": "Rep",
+        "sponsor_type": "Co-Sponsor"
+      },
+      {
+        "people_id": 24269,
+        "name": "David Prestin",
+        "party": "R",
+        "role": "Rep",
+        "sponsor_type": "Co-Sponsor"
+      }
+    ],
     "calendar": [],
-    "session_id": 0,
-    "session_name": "",
-    "session_year_start": 0,
-    "session_year_end": 0,
-    "description": "",
+    "session_id": 2183,
+    "session_name": "103rd Legislature",
+    "session_year_start": 2025,
+    "session_year_end": 2026,
+    "description": "Public utilities: consumer services; community solar facilities; require MPSC to promulgate rules concerning. Amends sec. 5 of 2008 PA 295 (MCL 460.1005) & adds pt. 9.",
+    "subjects": [
+      "Public utilities: consumer services",
+      "Public utilities: electric utilities",
+      "Energy: alternative sources",
+      "Energy: electricity"
+    ],
+    "committee": "Energy",
+    "committee_id": 3959,
+    "history": [
+      {
+        "date": "2025-06-10",
+        "action": "Introduced By Representative Rep. Greg Markkanen",
+        "chamber": "H",
+        "chamber_id": 53
+      },
+      {
+        "date": "2025-06-10",
+        "action": "Read A First Time",
+        "chamber": "H",
+        "chamber_id": 53
+      },
+      {
+        "date": "2025-06-10",
+        "action": "Referred To Committee On Energy",
+        "chamber": "H",
+        "chamber_id": 53
+      },
+      {
+        "date": "2025-06-11",
+        "action": "Bill Electronically Reproduced 06/10/2025",
+        "chamber": "H",
+        "chamber_id": 53
+      },
+      {
+        "date": "2025-07-24",
+        "action": "Rule Suspended",
+        "chamber": "H",
+        "chamber_id": 53
+      },
+      {
+        "date": "2025-07-24",
+        "action": "Motion To Discharge Committee Approved",
+        "chamber": "H",
+        "chamber_id": 53
+      },
+      {
+        "date": "2025-07-24",
+        "action": "Placed On Second Reading",
+        "chamber": "H",
+        "chamber_id": 53
+      },
+      {
+        "date": "2025-07-24",
+        "action": "Referred To Committee On Government Operations",
+        "chamber": "H",
+        "chamber_id": 53
+      },
+      {
+        "date": "2025-10-21",
+        "action": "Rule Suspended",
+        "chamber": "H",
+        "chamber_id": 53
+      },
+      {
+        "date": "2025-10-21",
+        "action": "Motion To Discharge Committee Approved",
+        "chamber": "H",
+        "chamber_id": 53
+      },
+      {
+        "date": "2025-10-21",
+        "action": "Placed On Second Reading",
+        "chamber": "H",
+        "chamber_id": 53
+      },
+      {
+        "date": "2025-10-21",
+        "action": "Re-referred To Committee On Energy",
+        "chamber": "H",
+        "chamber_id": 53
+      }
+    ],
+    "solar_keywords": null
+  },
+  {
+    "bill_id": 2112565,
+    "state": "MD",
+    "bill_number": "SB843",
+    "title": "Net Energy Metering, SUNRISE Program, and Community Solar Energy Generating Systems Program (SUNRISE Act)",
+    "url": "https://legiscan.com/MD/bill/SB843/2026",
+    "state_link": "https://mgaleg.maryland.gov/mgawebsite/Legislation/Details/SB0843?ys=2026RS",
+    "change_hash": "1daf00288270c89ec639281a2030b266",
+    "status": 1,
+    "last_history_date": "2026-03-03",
+    "last_history_action": "Hearing canceled",
+    "progress_events": [
+      1,
+      9
+    ],
+    "progress_details": [
+      {
+        "event": 1,
+        "date": "2026-02-06"
+      },
+      {
+        "event": 9,
+        "date": "2026-02-06"
+      }
+    ],
+    "priority": "high",
+    "sponsors": [
+      {
+        "people_id": 4575,
+        "name": "Brian Feldman",
+        "party": "D",
+        "role": "Sen",
+        "sponsor_type": "Primary Sponsor"
+      }
+    ],
+    "calendar": [
+      {
+        "date": "2026-03-12",
+        "description": "Senate Education, Energy, and the Environment Hearing",
+        "location": "",
+        "event_type": "Hearing"
+      }
+    ],
+    "session_id": 2240,
+    "session_name": "2026 Regular Session",
+    "session_year_start": 2026,
+    "session_year_end": 2026,
+    "description": "Requiring the Office of Home Energy Programs to administer, or through a local administering agency administer, certain programs and activities regarding low- and moderate-income households and the Community Solar Energy Generating Systems Program; altering the method by which certain rated generating capacity is counted toward the statewide net energy metering limit; requiring the Public Service Commission to establish a certain statewide capacity reservation system for certain net energy metering projects; etc.",
+    "subjects": [
+      "Utility Regulation",
+      "Energy and Climate",
+      "Human Relations",
+      "Administrative Agencies",
+      "Applicants and Applications",
+      "Boundaries",
+      "Certifications",
+      "Commerce and Business",
+      "Committees and Commissions",
+      "Community Development",
+      "Consumer Protection",
+      "Contracts",
+      "Data",
+      "Disclosure",
+      "Energy Administration",
+      "Energy Matters",
+      "Energy Technology and Infrastructure",
+      "Federal Government",
+      "internet",
+      "Low-Income",
+      "Moderate-Income",
+      "Notices",
+      "permits",
+      "Prices",
+      "Public Service Commission",
+      "Reports",
+      "Revenue and Taxes",
+      "Rules and Regulations",
+      "Safety",
+      "Solar Energy",
+      "Standards and Best Practices",
+      "Subscriptions and Memberships"
+    ],
+    "committee": "Education, Energy, and the Environment",
+    "committee_id": 4685,
+    "history": [
+      {
+        "date": "2026-02-06",
+        "action": "First Reading Education, Energy, and the Environment",
+        "chamber": "S",
+        "chamber_id": 50
+      },
+      {
+        "date": "2026-02-16",
+        "action": "Hearing 3/05 at 1:00 p.m.",
+        "chamber": "S",
+        "chamber_id": 50
+      },
+      {
+        "date": "2026-03-03",
+        "action": "Hearing canceled",
+        "chamber": "S",
+        "chamber_id": 50
+      },
+      {
+        "date": "2026-03-03",
+        "action": "Hearing 3/12 at 1:00 p.m.",
+        "chamber": "S",
+        "chamber_id": 50
+      }
+    ],
+    "solar_keywords": null
+  },
+  {
+    "bill_id": 2113868,
+    "state": "MD",
+    "bill_number": "HB1195",
+    "title": "Net Energy Metering, SUNRISE Program, and Community Solar Energy Generating Systems Program (SUNRISE Act)",
+    "url": "https://legiscan.com/MD/bill/HB1195/2026",
+    "state_link": "https://mgaleg.maryland.gov/mgawebsite/Legislation/Details/HB1195?ys=2026RS",
+    "change_hash": "dc46d697a6ef018e688318de74f61006",
+    "status": 1,
+    "last_history_date": "2026-02-12",
+    "last_history_action": "Hearing 3/03 at 1:00 p.m.",
+    "progress_events": [
+      1,
+      9
+    ],
+    "progress_details": [
+      {
+        "event": 1,
+        "date": "2026-02-11"
+      },
+      {
+        "event": 9,
+        "date": "2026-02-11"
+      }
+    ],
+    "priority": "high",
+    "sponsors": [
+      {
+        "people_id": 4627,
+        "name": "Dana Stein",
+        "party": "D",
+        "role": "Rep",
+        "sponsor_type": "Primary Sponsor"
+      }
+    ],
+    "calendar": [
+      {
+        "date": "2026-03-03",
+        "description": "House Environment and Transportation Hearing",
+        "location": "",
+        "event_type": "Hearing"
+      }
+    ],
+    "session_id": 2240,
+    "session_name": "2026 Regular Session",
+    "session_year_start": 2026,
+    "session_year_end": 2026,
+    "description": "Requiring the Office of Home Energy Programs to administer, or through a local administering agency administer, certain programs and activities regarding low- and moderate-income households and the Community Solar Energy Generating Systems Program; altering the method by which certain rated generating capacity is counted toward the statewide net energy metering limit; requiring the Public Service Commission to establish a certain statewide capacity reservation system for certain net energy metering projects; etc.",
+    "subjects": [
+      "Utility Regulation",
+      "Energy and Climate",
+      "Human Relations",
+      "Administrative Agencies",
+      "Applicants and Applications",
+      "Boundaries",
+      "Certifications",
+      "Commerce and Business",
+      "Committees and Commissions",
+      "Community Development",
+      "Consumer Protection",
+      "Contracts",
+      "Data",
+      "Disclosure",
+      "Energy Administration",
+      "Energy Matters",
+      "Energy Technology and Infrastructure",
+      "Federal Government",
+      "internet",
+      "Low-Income",
+      "Moderate-Income",
+      "Notices",
+      "permits",
+      "Prices",
+      "Public Service Commission",
+      "Reports",
+      "Revenue and Taxes",
+      "Rules and Regulations",
+      "Safety",
+      "Solar Energy",
+      "Standards and Best Practices",
+      "Subscriptions and Memberships"
+    ],
+    "committee": "Environment and Transportation",
+    "committee_id": 3266,
+    "history": [
+      {
+        "date": "2026-02-11",
+        "action": "First Reading Environment and Transportation",
+        "chamber": "H",
+        "chamber_id": 49
+      },
+      {
+        "date": "2026-02-12",
+        "action": "Hearing 3/03 at 1:00 p.m.",
+        "chamber": "H",
+        "chamber_id": 49
+      }
+    ],
+    "solar_keywords": null
+  },
+  {
+    "bill_id": 2122315,
+    "state": "IA",
+    "bill_number": "HF2672",
+    "title": "A bill for an act relating to solar energy by establishing a community solar facility program.(Formerly HSB 629.)",
+    "url": "https://legiscan.com/IA/bill/HF2672/2025",
+    "state_link": "https://www.legis.iowa.gov/legislation/BillBook?ga=91&ba=HF2672",
+    "change_hash": "717d729bf8ad5c6807a3a9366adf5735",
+    "status": 1,
+    "last_history_date": "2026-03-11",
+    "last_history_action": "Amendment H-8209 filed. H.J. 637.",
+    "progress_events": [
+      1
+    ],
+    "progress_details": [
+      {
+        "event": 1,
+        "date": "2026-02-23"
+      }
+    ],
+    "priority": "medium",
+    "sponsors": [
+      {
+        "people_id": 7061,
+        "name": "Commerce",
+        "party": "0",
+        "role": "Rep",
+        "sponsor_type": "Primary Sponsor"
+      }
+    ],
+    "calendar": [],
+    "session_id": 2177,
+    "session_name": "91st General Assembly",
+    "session_year_start": 2025,
+    "session_year_end": 2026,
+    "description": "A bill for an act relating to solar energy by establishing a community solar facility program.(Formerly HSB 629.)",
     "subjects": [],
     "committee": "",
     "committee_id": 0,
-    "history": [],
+    "history": [
+      {
+        "date": "2026-02-23",
+        "action": "Introduced, placed on calendar. H.J. 375.",
+        "chamber": "H",
+        "chamber_id": 39
+      },
+      {
+        "date": "2026-03-09",
+        "action": "Amendment H-8171 filed. H.J. 614.",
+        "chamber": "H",
+        "chamber_id": 39
+      },
+      {
+        "date": "2026-03-11",
+        "action": "Amendment H-8209 filed. H.J. 637.",
+        "chamber": "H",
+        "chamber_id": 39
+      }
+    ],
+    "solar_keywords": null
+  },
+  {
+    "bill_id": 2095529,
+    "state": "IA",
+    "bill_number": "SSB3092",
+    "title": "A bill for an act relating to solar energy by establishing a community solar facility program.",
+    "url": "https://legiscan.com/IA/bill/SSB3092/2025",
+    "state_link": "https://www.legis.iowa.gov/legislation/BillBook?ga=91&ba=SSB3092",
+    "change_hash": "c72f97aeb104f8cc3fb535679347922d",
+    "status": 1,
+    "last_history_date": "2026-02-05",
+    "last_history_action": "Subcommittee recommends passage.",
+    "progress_events": [
+      1,
+      9
+    ],
+    "progress_details": [
+      {
+        "event": 1,
+        "date": "2026-01-28"
+      },
+      {
+        "event": 9,
+        "date": "2026-01-28"
+      }
+    ],
+    "priority": "medium",
+    "sponsors": [
+      {
+        "people_id": 7160,
+        "name": "Commerce",
+        "party": "0",
+        "role": "Sen",
+        "sponsor_type": "Primary Sponsor"
+      }
+    ],
+    "calendar": [
+      {
+        "date": "2026-02-05",
+        "description": "Senate Commerce Subcommittee",
+        "location": "Room 315",
+        "event_type": "Hearing"
+      },
+      {
+        "date": "2026-02-11",
+        "description": "Senate Commerce Committee",
+        "location": "RM 116",
+        "event_type": "Hearing"
+      }
+    ],
+    "session_id": 2177,
+    "session_name": "91st General Assembly",
+    "session_year_start": 2025,
+    "session_year_end": 2026,
+    "description": "A bill for an act relating to solar energy by establishing a community solar facility program.",
+    "subjects": [],
+    "committee": "Commerce",
+    "committee_id": 1472,
+    "history": [
+      {
+        "date": "2026-01-28",
+        "action": "By COMMITTEE ON COMMERCE",
+        "chamber": "S",
+        "chamber_id": 40
+      },
+      {
+        "date": "2026-01-28",
+        "action": "Introduced, referred to Commerce.",
+        "chamber": "S",
+        "chamber_id": 40
+      },
+      {
+        "date": "2026-01-28",
+        "action": "Subcommittee: Gruenhagen, Bisignano, and Driscoll.",
+        "chamber": "S",
+        "chamber_id": 40
+      },
+      {
+        "date": "2026-02-03",
+        "action": "Subcommittee Meeting: 02/05/2026 12:00PM Room 315.",
+        "chamber": "S",
+        "chamber_id": 40
+      },
+      {
+        "date": "2026-02-05",
+        "action": "Subcommittee recommends passage.",
+        "chamber": "S",
+        "chamber_id": 40
+      }
+    ],
+    "solar_keywords": null
+  },
+  {
+    "bill_id": 2046540,
+    "state": "OH",
+    "bill_number": "SB294",
+    "title": "Declare the state's energy siting policy",
+    "url": "https://legiscan.com/OH/bill/SB294/2025",
+    "state_link": "https://www.legislature.ohio.gov/legislation/136/sb294",
+    "change_hash": "ec4c6925bb66935d9f00e3b013b8a262",
+    "status": 1,
+    "last_history_date": "2025-10-22",
+    "last_history_action": "Referred to committee: Energy",
+    "progress_events": [
+      1
+    ],
+    "progress_details": [
+      {
+        "event": 1,
+        "date": "2025-10-15"
+      }
+    ],
+    "priority": "high",
+    "sponsors": [
+      {
+        "people_id": 19413,
+        "name": "George Lang",
+        "party": "R",
+        "role": "Sen",
+        "sponsor_type": "Primary Sponsor"
+      },
+      {
+        "people_id": 14663,
+        "name": "Mark Romanchuk",
+        "party": "R",
+        "role": "Sen",
+        "sponsor_type": "Primary Sponsor"
+      },
+      {
+        "people_id": 10994,
+        "name": "Andrew Brenner",
+        "party": "R",
+        "role": "Sen",
+        "sponsor_type": "Co-Sponsor"
+      },
+      {
+        "people_id": 16967,
+        "name": "Bill Reineke",
+        "party": "R",
+        "role": "Sen",
+        "sponsor_type": "Co-Sponsor"
+      }
+    ],
+    "calendar": [
+      {
+        "date": "2025-10-28",
+        "description": "Senate Energy 1st Hearing, Sponsor",
+        "location": "Finance Hearing Room",
+        "event_type": "Hearing"
+      },
+      {
+        "date": "2025-11-04",
+        "description": "Senate Energy 2nd Hearing, Proponent",
+        "location": "Finance Hearing Room",
+        "event_type": "Hearing"
+      },
+      {
+        "date": "2026-01-27",
+        "description": "Senate Energy 3rd Hearing, Opponent/Interested Party",
+        "location": "Finance Hearing Room",
+        "event_type": "Hearing"
+      },
+      {
+        "date": "2026-02-10",
+        "description": "Senate Energy 3rd Hearing, Opponent/Interested Party",
+        "location": "Finance Hearing Room",
+        "event_type": "Hearing"
+      }
+    ],
+    "session_id": 2190,
+    "session_name": "136th General Assembly",
+    "session_year_start": 2025,
+    "session_year_end": 2026,
+    "description": "To enact section 4906.011 of the Revised Code to declare the state's energy siting policy.",
+    "subjects": [
+      "Utilities",
+      "Utilities : Electric Utilities",
+      "Utilities : Gas Utilities",
+      "Senate Energy Committee"
+    ],
+    "committee": "Energy",
+    "committee_id": 5084,
+    "history": [
+      {
+        "date": "2025-10-15",
+        "action": "Introduced",
+        "chamber": "S",
+        "chamber_id": 6
+      },
+      {
+        "date": "2025-10-22",
+        "action": "Referred to committee: Energy",
+        "chamber": "S",
+        "chamber_id": 6
+      }
+    ],
     "solar_keywords": null
   }
 ]
