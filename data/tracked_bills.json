@@ -207,13 +207,14 @@
     "title": "Authorizing community solar programs and granting rule-making authority. (FE)",
     "url": "https://legiscan.com/WI/bill/SB559/2025",
     "state_link": "https://docs.legis.wisconsin.gov/2025/proposals/reg/sen/bill/sb559",
-    "change_hash": "99e6f8c710273041e45e62f113e5a8c5",
-    "status": 1,
-    "last_history_date": "2025-12-09",
-    "last_history_action": "Public hearing held",
+    "change_hash": "0727e8eb69005d93e95a89ab7cee553f",
+    "status": 6,
+    "last_history_date": "2026-03-23",
+    "last_history_action": "Failed to pass pursuant to Senate Joint Resolution 1",
     "progress_events": [
       1,
-      9
+      9,
+      6
     ],
     "progress_details": [
       {
@@ -223,6 +224,10 @@
       {
         "event": 9,
         "date": "2025-10-24"
+      },
+      {
+        "event": 6,
+        "date": "2026-03-23"
       }
     ],
     "priority": "medium",
@@ -369,6 +374,12 @@
       {
         "date": "2025-12-09",
         "action": "Public hearing held",
+        "chamber": "S",
+        "chamber_id": 100
+      },
+      {
+        "date": "2026-03-23",
+        "action": "Failed to pass pursuant to Senate Joint Resolution 1",
         "chamber": "S",
         "chamber_id": 100
       }
